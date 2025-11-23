@@ -13,30 +13,69 @@
     <!-- TODO: Add a title, e.g., "Course Assignments". -->
 
     <!-- TODO: Link to your CSS framework or stylesheet. -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Assignments</title>
+    <link rel="stylesheet" href="../common/styles.css">
+    <script src="list.js" defer></script>
 </head>
-<body>
+<body class="bg-light">
 
     <!-- TODO: Create a 'header' with a main heading ('h1') "Course Assignments". -->
+    <header class="container my-4">
+        <h1 class="mb-3">Course Assignments</h1>
+    </header>
 
     <!-- TODO: Create the 'main' content area. -->
+    <main class="container">
         <!-- TODO: Create a 'section' to contain the list of assignments. -->
+        <section id="assignments-list" class="row gy-3">
             <!-- TODO: Add 2-3 dummy assignment entries using the structure below. -->
 
             <!-- Example Assignment 1: -->
             <!-- TODO: Use an 'article' element for each assignment. -->
-                <!-- TODO: Add a heading ('h2') for the assignment's title (e.g., "Assignment 1: HTML Basics"). -->
-                <!-- TODO: Add a paragraph ('p') to display the due date, e.g., "Due: YYYY-MM-DD". -->
-                <!-- TODO: Add another paragraph ('p') for a brief description. -->
-                <!-- TODO: Add an anchor tag ('a') that links to the detail page. 
-                     - For now, the 'href' can be "assignment-detail.html".
-                     - The link text should be "View Details & Discussion". -->
-            <!-- End of article. -->
+            <article class="assignment col-12">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h2 class="card-title h5">Assignment 1: HTML Basics</h2>
+                        <p class="due-date text-muted mb-1">Due: 2025-12-01</p>
+                        <p class="brief card-text">Create a simple HTML page demonstrating semantic elements, headings, lists, and links.</p>
+                        <a href="details.html?id=asg_1" class="btn btn-primary btn-sm mt-1">
+                            View Details &amp; Discussion
+                        </a>
+                    </div>
+                </div>
+            </article>
 
             <!-- Example Assignment 2: -->
-            <!-- TODO: Create a second 'article' for another assignment with the same structure. -->
+            <article class="assignment col-12">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h2 class="card-title h5">Assignment 2: CSS Fundamentals</h2>
+                        <p class="due-date text-muted mb-1">Due: 2025-12-08</p>
+                        <p class="brief card-text">Style the starter page using an external stylesheet and CSS layout techniques.</p>
+                        <a href="details.html?id=asg_2" class="btn btn-primary btn-sm mt-1">
+                            View Details &amp; Discussion
+                        </a>
+                    </div>
+                </div>
+            </article>
 
-        <!-- End of assignment list section. -->
-    <!-- End of main. -->
+            <!-- Example Assignment 3: -->
+            <article class="assignment col-12">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h2 class="card-title h5">Assignment 3: JavaScript Interactivity</h2>
+                        <p class="due-date text-muted mb-1">Due: 2025-12-15</p>
+                        <p class="brief card-text">Add basic interactivity to the page using DOM events and simple state.</p>
+                        <a href="details.html?id=asg_3" class="btn btn-primary btn-sm mt-1">
+                            View Details &amp; Discussion
+                        </a>
+                    </div>
+                </div>
+            </article>
 
+        </section>
+    </main>
 </body>
 </html>

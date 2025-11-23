@@ -23,7 +23,14 @@ let currentAssignmentId = null;
 let currentComments = [];
 
 // --- Element Selections ---
-// TODO: Select all the elements you added IDs for in step 2.
+// Select all the elements you added IDs for in step 2.
+const assignmentTitle = document.getElementById('assignment-title');
+const assignmentDueDate = document.getElementById('assignment-due-date');
+const assignmentDescription = document.getElementById('assignment-description');
+const assignmentFilesList = document.getElementById('assignment-files-list');
+const commentList = document.getElementById('comment-list');
+const commentForm = document.getElementById('comment-form');
+const newCommentText = document.getElementById('new-comment-text');
 
 // --- Functions ---
 
@@ -35,7 +42,8 @@ let currentComments = [];
  * 3. Return the id.
  */
 function getAssignmentIdFromURL() {
-  // ... your implementation here ...
+  const params = new URLSearchParams(window.location.search);
+  return params.get('id');
 }
 
 /**
@@ -49,7 +57,23 @@ function getAssignmentIdFromURL() {
  * `<li><a href="#">...</a></li>` for each file in the assignment's 'files' array.
  */
 function renderAssignmentDetails(assignment) {
-  // ... your implementation here ...
+  if (!assignment) return;
+  if (assignmentTitle) assignmentTitle.textContent = assignment.title || '';
+  if (assignmentDueDate) assignmentDueDate.textContent = 'Due: ' + (assignment.dueDate || '');
+  if (assignmentDescription) assignmentDescription.textContent = assignment.description || '';
+
+  if (assignmentFilesList) {
+    assignmentFilesList.innerHTML = '';
+    const files = assignment.files || [];
+    files.forEach(f => {
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = '#';
+      a.textContent = f;
+      li.appendChild(a);
+      assignmentFilesList.appendChild(li);
+    });
+  }
 }
 
 /**
@@ -58,7 +82,15 @@ function renderAssignmentDetails(assignment) {
  * It should return an <article> element matching the structure in `details.html`.
  */
 function createCommentArticle(comment) {
-  // ... your implementation here ...
+  const art = document.createElement('article');
+  art.className = 'comment';
+  const p = document.createElement('p');
+  p.textContent = comment.text || '';
+  const footer = document.createElement('footer');
+  footer.textContent = 'Posted by: ' + (comment.author || '');
+  art.appendChild(p);
+  art.appendChild(footer);
+  return art;
 }
 
 /**
@@ -70,7 +102,12 @@ function createCommentArticle(comment) {
  * append the resulting <article> to `commentList`.
  */
 function renderComments() {
-  // ... your implementation here ...
+  if (!commentList) return;
+  commentList.innerHTML = '';
+  currentComments.forEach(c => {
+    const art = createCommentArticle(c);
+    commentList.appendChild(art);
+  });
 }
 
 /**
@@ -86,8 +123,41 @@ function renderComments() {
  * 6. Call `renderComments()` to refresh the list.
  * 7. Clear the `newCommentText` textarea.
  */
-function handleAddComment(event) {
-  // ... your implementation here ...
+async function handleAddComment(event) {
+  event.preventDefault();
+  if (!newCommentText) return;
+
+  const text = newCommentText.value.trim();
+  if (!text) return;
+
+  const newComment = { author: 'Student', text };
+
+  // Try to save the comment via the API first
+  try {
+    const resp = await fetch('api/index.php?resource=comments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        assignment_id: currentAssignmentId,
+        author: newComment.author,
+        text: newComment.text
+      })
+    });
+
+    if (resp.ok) {
+      const saved = await resp.json();
+      currentComments.push(saved);
+    } else {
+      // Fallback: in-memory only if API fails
+      currentComments.push(newComment);
+    }
+  } catch (err) {
+    // Fallback: in-memory only on network error
+    currentComments.push(newComment);
+  }
+
+  renderComments();
+  newCommentText.value = '';
 }
 
 /**
@@ -107,7 +177,57 @@ function handleAddComment(event) {
  * 7. If the assignment is not found, display an error.
  */
 async function initializePage() {
-  // ... your implementation here ...
+  currentAssignmentId = getAssignmentIdFromURL();
+  if (!currentAssignmentId) {
+    console.error('No assignment id in URL');
+    return;
+  }
+
+  try {
+    // Prefer the PHP API for a single assignment + its comments
+    const assignmentUrl = `api/index.php?resource=assignments&id=${encodeURIComponent(currentAssignmentId)}`;
+    const commentsUrl = `api/index.php?resource=comments&assignment_id=${encodeURIComponent(currentAssignmentId)}`;
+
+    const [aResp, cResp] = await Promise.all([
+      fetch(assignmentUrl),
+      fetch(commentsUrl)
+    ]);
+
+    let assignment = null;
+    let comments = [];
+
+    // Assignment - API first, then JSON fallback
+    if (aResp.ok) {
+      assignment = await aResp.json();
+    } else {
+      const aFallback = await fetch('assignments.json');
+      const assignmentsData = aFallback.ok ? await aFallback.json() : [];
+      if (Array.isArray(assignmentsData)) {
+        assignment = assignmentsData.find(a => a.id === currentAssignmentId) || null;
+      }
+    }
+
+    // Comments - API first, then JSON fallback
+    if (cResp.ok) {
+      comments = await cResp.json(); // API returns an array
+    } else {
+      const cFallback = await fetch('comments.json');
+      const commentsData = cFallback.ok ? await cFallback.json() : {};
+      comments = (commentsData && commentsData[currentAssignmentId]) ? commentsData[currentAssignmentId] : [];
+    }
+
+    currentComments = Array.isArray(comments) ? comments : [];
+
+    if (assignment) {
+      renderAssignmentDetails(assignment);
+      renderComments();
+      if (commentForm) commentForm.addEventListener('submit', handleAddComment);
+    } else {
+      console.error('Assignment not found for id:', currentAssignmentId);
+    }
+  } catch (err) {
+    console.error('Failed to initialize page', err);
+  }
 }
 
 // --- Initial Page Load ---

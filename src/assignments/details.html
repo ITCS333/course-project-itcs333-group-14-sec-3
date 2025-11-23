@@ -12,12 +12,20 @@
     <!-- TODO: Add a title, for now use "Assignment Details". -->
 
     <!-- TODO: Link to your CSS framework or stylesheet. -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assignment Details</title>
+    <link rel="stylesheet" href="../common/styles.css">
+    <script src="details.js" defer></script>
 </head>
-<body>
+<body class="bg-light">
     <!-- TODO: Create a 'header' with a main heading ('h1'). Use a dummy title like "Assignment 1: HTML Basics". -->
+    <header class="container my-4">
+        <h1 id="assignment-title" class="mb-2">Assignment 1: HTML Basics</h1>
+    </header>
 
-    <!-- TODO: Create the 'main' content area. -->
-
+        <!-- TODO: Create the 'main' content area. -->
+        <main class="container">
         <!-- Section 1: Assignment Information -->
         <!-- TODO: Use an 'article' to display the main assignment information. -->
             <!-- TODO: Add a paragraph ('p') to display the due date, e.g., "Due: YYYY-MM-DD". -->
@@ -30,7 +38,20 @@
                 <!-- Example: <li><a href="#">assignment-brief.pdf</a></li> -->
             <!-- End of the list. -->
         <!-- End of article. -->
+        <article class="card shadow-sm mb-4">
+            <div class="card-body">
+                <p id="assignment-due-date" class="text-muted">Due: 2025-12-01</p>
 
+                <h2 class="h5 mt-3">Description</h2>
+                <p id="assignment-description">This assignment asks you to create a simple HTML page that demonstrates semantic elements, headings, lists, and links. Provide a clear structure and include at least one image and one external link.</p>
+
+                <h2 class="h5 mt-4">Attached Files &amp; Links</h2>
+                <ul id="assignment-files-list" class="mb-0">
+                    <li><a href="#">assignment-brief.pdf</a></li>
+                    <li><a href="#">starter-files.zip</a></li>
+                </ul>
+            </div>
+        </article>
         <!-- Section 2: Discussion Forum -->
         <!-- TODO: Create a 'section' for the discussion, with an 'id' of "discussion-forum". -->
             <!-- TODO: Add a sub-heading ('h2') "Questions & Discussion". -->
@@ -59,7 +80,33 @@
                 <!-- End of fieldset. -->
             <!-- End of form. -->
         <!-- End of discussion section. -->
+        <section id="discussion-forum" class="card shadow-sm mb-4">
+            <div class="card-body">
+                <h2 class="h5">Questions &amp; Discussion</h2>
 
+                <div id="comment-list" class="comments-list mb-3">
+                    <article class="comment mb-2">
+                        <p>Is it okay to use a <code>section</code> inside an <code>article</code> for subtopics?</p>
+                        <footer class="text-muted small">Posted by: Jane Smith</footer>
+                    </article>
+
+                    <article class="comment mb-2">
+                        <p>Should we include external CSS or inline styles for the starter page?</p>
+                        <footer class="text-muted small">Posted by: Ahmad Khan</footer>
+                    </article>
+                </div>
+
+                <form id="comment-form" action="#">
+                    <fieldset>
+                        <legend class="h6">Ask a Question</legend>
+                        <label for="new-comment-text">Your question</label>
+                        <textarea id="new-comment-text" rows="4" required></textarea>
+                        <button type="submit" class="btn btn-primary mt-2">Post Comment</button>
+                    </fieldset>
+                </form>
+            </div>
+        </section>
     <!-- End of main. -->
+    </main>
 </body>
 </html>

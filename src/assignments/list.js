@@ -13,6 +13,12 @@
 
 // --- Element Selections ---
 // TODO: Select the section for the assignment list ('#assignment-list-section').
+// Be tolerant of either id: 'assignment-list-section' (requested in comments)
+// or 'assignments-list' (present in `list.html`). Fall back to the first
+// <section> on the page if neither id exists.
+const listSection = document.getElementById('assignment-list-section')
+  || document.getElementById('assignments-list')
+  || document.querySelector('section');
 
 // --- Functions ---
 
@@ -24,7 +30,30 @@
  * This is how the detail page will know which assignment to load.
  */
 function createAssignmentArticle(assignment) {
-  // ... your implementation here ...
+  const article = document.createElement('article');
+  article.className = 'assignment';
+
+  const h2 = document.createElement('h2');
+  h2.textContent = assignment.title || '';
+  article.appendChild(h2);
+
+  const due = document.createElement('p');
+  due.className = 'due-date';
+  due.textContent = 'Due: ' + (assignment.dueDate || '');
+  article.appendChild(due);
+
+  const brief = document.createElement('p');
+  brief.className = 'brief';
+  brief.textContent = assignment.description || '';
+  article.appendChild(brief);
+
+  const link = document.createElement('a');
+  const id = assignment.id || '';
+  link.href = `details.html?id=${encodeURIComponent(id)}`;
+  link.textContent = 'View Details & Discussion';
+  article.appendChild(link);
+
+  return article;
 }
 
 /**
@@ -39,7 +68,46 @@ function createAssignmentArticle(assignment) {
  * - Append the returned <article> element to `listSection`.
  */
 async function loadAssignments() {
-  // ... your implementation here ...
+  if (!listSection) return;
+
+  // Try to fetch from the PHP API first, then fall back to JSON files.
+  const candidates = [
+    'api/index.php?resource=assignments',
+    'api/assignments.json',
+    'assignments.json'
+  ];
+  let assignments = [];
+
+  for (const path of candidates) {
+    try {
+      const resp = await fetch(path);
+      if (!resp.ok) continue;
+      const data = await resp.json();
+      if (Array.isArray(data)) {
+        assignments = data;
+        break;
+      }
+    } catch (err) {
+      // ignore and try next candidate
+    }
+  }
+
+  // Clear existing content
+  listSection.innerHTML = '';
+
+  // If no assignments found, keep a friendly message
+  if (!assignments || assignments.length === 0) {
+    const msg = document.createElement('p');
+    msg.textContent = 'No assignments available.';
+    listSection.appendChild(msg);
+    return;
+  }
+
+  // Populate the section with articles
+  assignments.forEach(a => {
+    const art = createAssignmentArticle(a);
+    listSection.appendChild(art);
+  });
 }
 
 // --- Initial Page Load ---
