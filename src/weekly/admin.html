@@ -7,78 +7,154 @@
 -->
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <!-- TODO: Add the 'meta' tag for character encoding (UTF-8). -->
-    
+    <meta charset="UTF-8">
+
     <!-- TODO: Add the responsive 'viewport' meta tag. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- TODO: Add a title, e.g., "Manage Weekly Breakdown". -->
+    <title>Manage Weekly Breakdown</title>
 
     <!-- TODO: Link to your CSS framework or stylesheet. -->
+    <link rel="stylesheet" href="../common/styles.css">
+
 </head>
+
 <body>
 
     <!-- TODO: Create a 'header' with a main heading ('h1') "Manage Weekly Breakdown". -->
+    <header>
+        <h1>Manage Weekly Breakdown</h1>
+    </header>
 
     <!-- TODO: Create the 'main' content area. -->
+    <main>
 
         <!-- Section 1: Add/Edit Week Form -->
         <!-- TODO: Create a 'section' for the form. -->
+        <section>
+
             <!-- TODO: Add a sub-heading ('h2') "Add a New Week". -->
+            <h2>Add a New Week</h2>
 
             <!-- TODO: Create a 'form' with an id "week-form". Action can be '#'. -->
-                <!-- TODO: Use a 'fieldset' to group the form controls. -->
-                    <!-- TODO: Add a 'legend', e.g., "Weekly Details". -->
+            <form id="week-form" action="#">
 
+                <!-- TODO: Use a 'fieldset' to group the form controls. -->
+                <fieldset>
+                    <!-- TODO: Add a 'legend', e.g., "Weekly Details". -->
+                    <legend>Weekly Details</legend>
                     <!-- TODO: Add a 'label' and 'input' for the week's title.
                          - label 'for': "week-title"
                          - input 'id': "week-title", type="text", required
                          - Example placeholder: "Week 1: Introduction to HTML" -->
+                    <label for="week-title">Week Title</label>
+                    <input id="week-title" type="text" required placeholder="Week 1: Introduction to HTML">
 
                     <!-- TODO: Add a 'label' and 'input' for the week's starting date.
                          - label 'for': "week-start-date"
                          - input 'id': "week-start-date", type="date", required -->
+                    <label for="week-start-date">Start Date</label>
+                    <input id="week-start-date" type="date" required>
 
                     <!-- TODO: Add a 'label' and 'textarea' for the week's description and notes.
                          - label 'for': "week-description"
                          - textarea 'id': "week-description", rows="5" -->
-                    
+                    <label for="week-description">Description</label>
+                    <textarea id="week-description" rows="5"></textarea>
+
                     <!-- TODO: Add a 'label' and 'textarea' for links to exercises or resources (one link per line).
                          - label 'for': "week-links"
                          - textarea 'id': "week-links", rows="3" -->
+                    <label for="week-links">Links</label>
+                    <textarea id="week-links" rows="3"></textarea>
+
+                    <br>
+                    <br>
 
                     <!-- TODO: Add a 'button' to submit the form.
                          - id="add-week", type="submit", Text: "Add Week" -->
-                <!-- End of fieldset. -->
-            <!-- End of form. -->
-        <!-- End of form section. -->
+                    <button id="add-week" type="submit">Add Week</button>
+
+                    <!-- End of fieldset. -->
+                </fieldset>
+
+                <!-- End of form. -->
+            </form>
+
+            <!-- End of form section. -->
+        </section>
 
 
         <!-- Section 2: Existing Weekly Entries -->
         <!-- TODO: Create a 'section' to display the list of current weeks. -->
+        <section>
+
             <!-- TODO: Add a sub-heading ('h2') "Current Weekly Breakdown". -->
+            <h2>Current Weekly Breakdown</h2>
 
             <!-- TODO: Create a 'table' with id "weeks-table". -->
+            <table id="weeks-table">
+
                 <!-- TODO: Create a 'thead' and a 'tr' inside it. -->
-                    <!-- TODO: Add 'th' elements for "Week Title", "Description", and "Actions". -->
-                
+                <thead>
+                    <tr>
+
+
+                        <!-- TODO: Add 'th' elements for "Week Title", "Description", and "Actions". -->
+                        <th>
+                            Week Title
+                        </th>
+                        <th>
+                            Description
+                        </th>
+                        <th>
+                            Actions
+                        </th>
+
+                    </tr>
+                </thead>
                 <!-- TODO: Create a 'tbody' for the data. -->
+                <tbody>
+
                     <!-- TODO: Add 1-2 rows of dummy data to see the structure. -->
                     <!-- Example Row 1: -->
                     <!-- TODO: Create a 'tr' for the first week. -->
+                    <tr>
+
                         <!-- TODO: Add 'td' cells for a title (e.g., "Week 1: Intro to HTML") and a short description. -->
-                        
+                        <td>Week 1: Intro to HTML</td>
+                        <td>Introduction to HTML basics and structure</td>
                         <!-- TODO: Add a 'td' containing the action buttons. -->
+                        <td>
+
                             <!-- TODO: Add an "Edit" button. -->
+                            <button>Edit</button>
+
                             <!-- TODO: Add a "Delete" button. -->
-                        <!-- End of actions 'td'. -->
-                    <!-- End of the row. -->
+                            <button>Delete</button>
 
-                <!-- End of tbody. -->
-            <!-- End of table. -->
-        <!-- End of list section. -->
+                            <!-- End of actions 'td'. -->
+                        </td>
 
-    <!-- End of main. -->
+                        <!-- End of the row. -->
+                    </tr>
+
+                    <!-- End of tbody. -->
+                </tbody>
+
+                <!-- End of table. -->
+            </table>
+            <!-- End of list section. -->
+        </section>
+
+        <!-- End of main. -->
+    </main>
+
+
 </body>
-</html>
 
+</html>
