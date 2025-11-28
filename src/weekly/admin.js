@@ -124,13 +124,13 @@ function handleAddWeek(event) {
     .filter(link => link !== '');
 
   // Create new week object
-  const newWeek = {
-    id: `week_${Date.now()}`,
+  const newWeek = `{
+    id: week_${Date.now()},
     title: title,
     startDate: startDate,
     description: description,
     links: links
-  };
+  }`;
 
   // Add to global weeks array
   weeks.push(newWeek);
@@ -154,6 +154,7 @@ function handleAddWeek(event) {
  */
 function handleTableClick(event) {
   // ... your implementation here ...
+  // Delete button
   if (event.target.classList.contains('delete-btn')) {
     const weekId = event.target.getAttribute('data-id');
 
@@ -162,6 +163,21 @@ function handleTableClick(event) {
 
     // Refresh table
     renderTable();
+  }
+
+  if (event.target.classList.contains('edit-btn')) {
+    const weekId = event.target.getAttribute('data-id');
+    const weekToEdit = weeks.find(week => week.id === weekId);
+
+    if (weekToEdit) {
+      document.querySelector('#week-title').value = weekToEdit.title;
+      document.querySelector('#week-start-date').value = weekToEdit.startDate;
+      document.querySelector('#week-description').value = weekToEdit.description;
+      document.querySelector('#week-links').value = weekToEdit.links.join('\n');
+
+      weeks = weeks.filter(week => week.id !== weekId);
+      renderTable();
+    }
   }
 }
 
@@ -178,26 +194,38 @@ function handleTableClick(event) {
 async function loadAndInitialize() {
   // ... your implementation here ...
   try {
-    // Fetch data from weeks.json
-    const response = await fetch('weeks.json');
+    console.log('Starting initialization...');
 
-    if (!response.ok) {
-      throw new Error(`Failed to load weeks data: ${response.status}`);
+    // Try to load from the file
+    const response = await fetch('./weeks.json');
+
+    if (response.ok) {
+      weeks = await response.json();
+      console.log('✅ Loaded weeks from file:', weeks);
+    } else {
+      console.log('⚠ weeks.json not found, starting with empty array');
+      weeks = []; // Start with empty array
     }
 
-    // Parse JSON and store in global weeks array
-    weeks = await response.json();
-
-    // Populate table
+    // Populate the table
     renderTable();
 
     // Add event listeners
     weekForm.addEventListener('submit', handleAddWeek);
     weeksTableBody.addEventListener('click', handleTableClick);
 
+    console.log('✅ Admin page initialized successfully');
+
   } catch (error) {
-    console.error('Error loading weeks data:', error);
-    // You might want to show a user-friendly error message here
+    console.error('❌ Error:', error);
+
+    // Even if there's an error, work with empty array
+    weeks = [];
+    renderTable();
+    weekForm.addEventListener('submit', handleAddWeek);
+    weeksTableBody.addEventListener('click', handleTableClick);
+
+    console.log('✅ Page working with empty data');
   }
 }
 
