@@ -100,12 +100,12 @@ function getAllWeeks($db) {
     // TODO: Initialize variables for search, sort, and order from query parameters
     global $queryParams;
     $search = isset($queryParams['search']) ? $queryParams['search'] : null;
-    $sort = isset($queryParams['sort']) ? $queryParams['sort'] : 'start_date';
+    $sort = isset($queryParams['sort']) ? $queryParams['sort'] : 'week_number';
     $order = isset($queryParams['order']) ? $queryParams['order'] : 'asc';
     
     // TODO: Start building the SQL query
     // Base query: SELECT week_id, title, start_date, description, links, created_at FROM weeks
-    $sql = "SELECT week_id, title, start_date, description, links, created_at FROM weeks";
+    $sql = "SELECT id, week_number, title, description, resources, created_at FROM weekly_breakdown";
 
     // TODO: Check if search parameter exists
     // If yes, add WHERE clause using LIKE for title and description
@@ -117,9 +117,9 @@ function getAllWeeks($db) {
     // TODO: Check if sort parameter exists
     // Validate sort field to prevent SQL injection (only allow: title, start_date, created_at)
     // If invalid, use default sort field (start_date)
-    $allowedSortFields = ['title', 'start_date', 'created_at'];
+    $allowedSortFields = ['title', 'week_number', 'created_at'];
     if (!in_array($sort, $allowedSortFields)) {
-        $sort = 'start_date';
+        $sort = 'week_number';
     }
 
     // TODO: Check if order parameter exists
@@ -152,7 +152,8 @@ function getAllWeeks($db) {
     // TODO: Process each week's links field
     // Decode the JSON string back to an array using json_decode()
     foreach ($weeks as &$week) {
-        $week['links'] = json_decode($week['links'], true);
+        $week['links'] = json_decode($week['resources'], true);
+        $week['week_id'] = 'week_' . $week['week_number'];
     }
 
     // TODO: Return JSON response with success status and data
@@ -183,11 +184,12 @@ function getWeekById($db, $weekId) {
 
     // TODO: Prepare SQL query to select week by week_id
     // SELECT week_id, title, start_date, description, links, created_at FROM weeks WHERE week_id = ?
-    $sql = "SELECT week_id, title, start_date, description, links, created_at FROM weeks WHERE week_id = :week_id";
+    $weekNumber = str_replace('week_', '', $weekId);
+    $sql = "SELECT id, week_number, title, description, resources, created_at 
+            FROM weekly_breakdown WHERE week_number = :week_number";
 
-    // TODO: Bind the week_id parameter
     $stmt = $db->prepare($sql);
-    $stmt->bindParam(':week_id', $weekId);
+    $stmt->bindParam(':week_number', $weekNumber);
 
     // TODO: Execute the query
     $stmt->execute();
@@ -199,7 +201,10 @@ function getWeekById($db, $weekId) {
     // If yes, decode the links JSON and return success response with week data
     // If no, return error response with 404 status
     if ($week) {
-        $week['links'] = json_decode($week['links'], true);
+        $week['links'] = json_decode($week['resources'], true);
+        $week['week_id'] = 'week_' . $week['week_number'];
+        $week['start_date'] = date('Y-m-d', strtotime($week['created_at']));
+        
         sendResponse([
             'success' => true,
             'data' => $week
@@ -249,12 +254,14 @@ function createWeek($db, $data) {
         return;
     }
 
+    $weekNumber = str_replace('week_', '', $week_id);
+
     // TODO: Check if week_id already exists
     // Prepare and execute a SELECT query to check for duplicates
     // If duplicate found, return error response with 409 status (Conflict)
-    $checkSql = "SELECT week_id FROM weeks WHERE week_id = :week_id";
+    $checkSql = "SELECT week_number FROM weekly_breakdown WHERE week_number = :week_number";
     $checkStmt = $db->prepare($checkSql);
-    $checkStmt->bindParam(':week_id', $week_id);
+    $checkStmt->bindParam(':week_number', $weekNumber);
     $checkStmt->execute();
     
     if ($checkStmt->fetch()) {
@@ -269,15 +276,15 @@ function createWeek($db, $data) {
 
     // TODO: Prepare INSERT query
     // INSERT INTO weeks (week_id, title, start_date, description, links) VALUES (?, ?, ?, ?, ?)
-    $sql = "INSERT INTO weeks (week_id, title, start_date, description, links) VALUES (:week_id, :title, :start_date, :description, :links)";
+    $sql = "INSERT INTO weekly_breakdown (week_number, title, description, resources) 
+            VALUES (:week_number, :title, :description, :resources)";
 
     // TODO: Bind parameters
     $stmt = $db->prepare($sql);
-    $stmt->bindParam(':week_id', $week_id);
+    $stmt->bindParam(':week_number', $weekNumber); 
     $stmt->bindParam(':title', $title);
-    $stmt->bindParam(':start_date', $start_date);
     $stmt->bindParam(':description', $description);
-    $stmt->bindParam(':links', $links);
+    $stmt->bindParam(':resources', $links); 
 
     // TODO: Execute the query
     $stmt->execute();
@@ -324,13 +331,14 @@ function updateWeek($db, $data) {
     }
     
     $week_id = sanitizeInput($data['week_id']);
+    $weekNumber = str_replace('week_', '', $week_id);
 
     // TODO: Check if week exists
     // Prepare and execute a SELECT query to find the week
     // If not found, return error response with 404 status
-    $checkSql = "SELECT week_id FROM weeks WHERE week_id = :week_id";
+    $checkSql = "SELECT week_number FROM weekly_breakdown WHERE week_number = :week_number";
     $checkStmt = $db->prepare($checkSql);
-    $checkStmt->bindParam(':week_id', $week_id);
+    $checkStmt->bindParam(':week_number', $weekNumber);
     $checkStmt->execute();
     
     if (!$checkStmt->fetch()) {
@@ -342,7 +350,7 @@ function updateWeek($db, $data) {
     // Initialize an array to hold SET clauses
     // Initialize an array to hold values for binding
     $updateFields = [];
-    $params = [':week_id' => $week_id];
+    $params = [':week_number' => $weekNumber]; 
 
     // TODO: Check which fields are provided and add to SET clauses
     // If title is provided, add "title = ?"
@@ -354,23 +362,14 @@ function updateWeek($db, $data) {
         $params[':title'] = sanitizeInput($data['title']);
     }
     
-    if (isset($data['start_date']) && !empty(trim($data['start_date']))) {
-        if (!validateDate($data['start_date'])) {
-            sendError('Invalid date format. Use YYYY-MM-DD', 400);
-            return;
-        }
-        $updateFields[] = "start_date = :start_date";
-        $params[':start_date'] = $data['start_date'];
-    }
-    
     if (isset($data['description']) && !empty(trim($data['description']))) {
         $updateFields[] = "description = :description";
         $params[':description'] = sanitizeInput($data['description']);
     }
     
     if (isset($data['links']) && is_array($data['links'])) {
-        $updateFields[] = "links = :links";
-        $params[':links'] = json_encode($data['links']);
+        $updateFields[] = "resources = :resources";
+        $params[':resources'] = json_encode($data['links']);
     }
 
     // TODO: If no fields to update, return error response with 400 status
@@ -381,11 +380,18 @@ function updateWeek($db, $data) {
 
     // TODO: Add updated_at timestamp to SET clauses
     // Add "updated_at = CURRENT_TIMESTAMP"
-    $updateFields[] = "updated_at = CURRENT_TIMESTAMP";
+    try {
+        $checkColumn = $db->query("SHOW COLUMNS FROM weekly_breakdown LIKE 'updated_at'");
+        if ($checkColumn->rowCount() > 0) {
+            $updateFields[] = "updated_at = CURRENT_TIMESTAMP";
+        }
+    } catch (Exception $e) {
+        error_log("updated_at column not found: " . $e->getMessage());
+    }
 
     // TODO: Build the complete UPDATE query
     // UPDATE weeks SET [clauses] WHERE week_id = ?
-    $sql = "UPDATE weeks SET " . implode(', ', $updateFields) . " WHERE week_id = :week_id";
+    $sql = "UPDATE weekly_breakdown SET " . implode(', ', $updateFields) . " WHERE week_number = :week_number";
 
     // TODO: Prepare the query
     $stmt = $db->prepare($sql);
@@ -429,36 +435,42 @@ function deleteWeek($db, $weekId) {
         return;
     }
 
+    $weekNumber = str_replace('week_', '', $weekId);
+
     // TODO: Check if week exists
     // Prepare and execute a SELECT query
     // If not found, return error response with 404 status
-    $checkSql = "SELECT week_id FROM weeks WHERE week_id = :week_id";
+    $checkSql = "SELECT id FROM weekly_breakdown WHERE week_number = :week_number";
     $checkStmt = $db->prepare($checkSql);
-    $checkStmt->bindParam(':week_id', $weekId);
+    $checkStmt->bindParam(':week_number', $weekNumber);
     $checkStmt->execute();
+
+    $week = $checkStmt->fetch(PDO::FETCH_ASSOC);
     
-    if (!$checkStmt->fetch()) {
+    if (!$week) {
         sendError('Week not found', 404);
         return;
     }
 
+    $weekDbId = $week['id'];
+
     // TODO: Delete associated comments first (to maintain referential integrity)
     // Prepare DELETE query for comments table
     // DELETE FROM comments WHERE week_id = ?
-    $deleteCommentsSql = "DELETE FROM comments WHERE week_id = :week_id";
+    $deleteCommentsSql = "DELETE FROM weekly_comments WHERE week_id = :week_id";
     $deleteCommentsStmt = $db->prepare($deleteCommentsSql);
-    $deleteCommentsStmt->bindParam(':week_id', $weekId);
+    $deleteCommentsStmt->bindParam(':week_id', $weekDbId);
 
     // TODO: Execute comment deletion query
     $deleteCommentsStmt->execute();
 
     // TODO: Prepare DELETE query for week
     // DELETE FROM weeks WHERE week_id = ?
-    $sql = "DELETE FROM weeks WHERE week_id = :week_id";
+    $sql = "DELETE FROM weekly_breakdown WHERE id = :id";
 
     // TODO: Bind the week_id parameter
     $stmt = $db->prepare($sql);
-    $stmt->bindParam(':week_id', $weekId);
+    $stmt->bindParam(':id', $weekDbId);
 
     // TODO: Execute the query
     $stmt->execute();
@@ -497,13 +509,32 @@ function getCommentsByWeek($db, $weekId) {
         return;
     }
 
+    $weekNumber = str_replace('week_', '', $weekId);
+
+    $weekSql = "SELECT id FROM weekly_breakdown WHERE week_number = :week_number";
+    $weekStmt = $db->prepare($weekSql);
+    $weekStmt->bindParam(':week_number', $weekNumber);
+    $weekStmt->execute();
+    $week = $weekStmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$week) {
+        sendError('Week not found', 404);
+        return;
+    }
+    
+    $weekDbId = $week['id'];
+
     // TODO: Prepare SQL query to select comments for the week
     // SELECT id, week_id, author, text, created_at FROM comments WHERE week_id = ? ORDER BY created_at ASC
-    $sql = "SELECT id, week_id, author, text, created_at FROM comments WHERE week_id = :week_id ORDER BY created_at ASC";
+    $sql = "SELECT wc.id, wc.comment as text, u.name as author, wc.created_at 
+            FROM weekly_comments wc 
+            JOIN users u ON wc.user_id = u.id 
+            WHERE wc.week_id = :week_id 
+            ORDER BY wc.created_at ASC";
 
     // TODO: Bind the week_id parameter
     $stmt = $db->prepare($sql);
-    $stmt->bindParam(':week_id', $weekId);
+    $stmt->bindParam(':week_id', $weekDbId);
 
     // TODO: Execute the query
     $stmt->execute();
@@ -556,28 +587,42 @@ function createComment($db, $data) {
         return;
     }
 
-    // TODO: Check if the week exists
-    // Prepare and execute a SELECT query on weeks table
-    // If week not found, return error response with 404 status
-    $checkSql = "SELECT week_id FROM weeks WHERE week_id = :week_id";
-    $checkStmt = $db->prepare($checkSql);
-    $checkStmt->bindParam(':week_id', $week_id);
-    $checkStmt->execute();
+    $weekNumber = str_replace('week_', '', $week_id);
+
+    $weekSql = "SELECT id FROM weekly_breakdown WHERE week_number = :week_number";
+    $weekStmt = $db->prepare($weekSql);
+    $weekStmt->bindParam(':week_number', $weekNumber);
+    $weekStmt->execute();
+    $week = $weekStmt->fetch(PDO::FETCH_ASSOC);
     
-    if (!$checkStmt->fetch()) {
+    if (!$week) {
         sendError('Week not found', 404);
         return;
     }
+    
+    $weekDbId = $week['id'];
+
+    // TODO: Check if the week exists
+    // Prepare and execute a SELECT query on weeks table
+    // If week not found, return error response with 404 status
+    $userSql = "SELECT id FROM users WHERE name = :name LIMIT 1";
+    $userStmt = $db->prepare($userSql);
+    $userStmt->bindParam(':name', $author);
+    $userStmt->execute();
+    $user = $userStmt->fetch(PDO::FETCH_ASSOC);
+    
+    $userId = $user ? $user['id'] : 1;
 
     // TODO: Prepare INSERT query
     // INSERT INTO comments (week_id, author, text) VALUES (?, ?, ?)
-    $sql = "INSERT INTO comments (week_id, author, text) VALUES (:week_id, :author, :text)";
+    $sql = "INSERT INTO weekly_comments (week_id, user_id, comment) 
+            VALUES (:week_id, :user_id, :comment)";
     
     // TODO: Bind parameters
     $stmt = $db->prepare($sql);
-    $stmt->bindParam(':week_id', $week_id);
-    $stmt->bindParam(':author', $author);
-    $stmt->bindParam(':text', $text);
+    $stmt->bindParam(':week_id', $weekDbId);
+    $stmt->bindParam(':user_id', $userId);
+    $stmt->bindParam(':comment', $text);
     
     // TODO: Execute the query
     $stmt->execute();
@@ -623,7 +668,7 @@ function deleteComment($db, $commentId) {
     // TODO: Check if comment exists
     // Prepare and execute a SELECT query
     // If not found, return error response with 404 status
-    $checkSql = "SELECT id FROM comments WHERE id = :id";
+    $checkSql = "SELECT id FROM weekly_comments WHERE id = :id";
     $checkStmt = $db->prepare($checkSql);
     $checkStmt->bindParam(':id', $commentId);
     $checkStmt->execute();
@@ -635,7 +680,7 @@ function deleteComment($db, $commentId) {
 
     // TODO: Prepare DELETE query
     // DELETE FROM comments WHERE id = ?
-    $sql = "DELETE FROM comments WHERE id = :id";
+    $sql = "DELETE FROM weekly_comments WHERE id = :id";
 
     // TODO: Bind the id parameter
     $stmt = $db->prepare($sql);
