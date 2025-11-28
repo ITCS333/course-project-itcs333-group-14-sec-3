@@ -18,6 +18,9 @@
   <!-- TODO: Link to your CSS framework or stylesheet. -->
   <link rel="stylesheet" href="../common/styles.css">
 
+  <!--javaScript file-->
+  <script src="../weekly/details.js" defer></script>
+
 </head>
 
 <body>
@@ -25,7 +28,7 @@
 
   <!-- TODO: Create a 'header' with a main heading ('h1'). Use a dummy title like "Week 1: Introduction to HTML". -->
   <header>
-    <h1>Week 1: Introduction to HTML</h1>
+    <h1 id="week-title">Week 1: Introduction to HTML</h1>
   </header>
 
   <!-- TODO: Create the 'main' content area. -->
@@ -36,13 +39,14 @@
     <article>
 
       <!-- TODO: Add a paragraph ('p') to display the start date, e.g., "Starts on: YYYY-MM-DD". -->
-      <p>Starts on: YYYY-MM-DD</p>
+      <p id="week-start-date">Starts on: YYYY-MM-DD</p>
+
 
       <!-- TODO: Add a sub-heading ('h2') "Description & Notes". -->
       <h2>Description & Notes</h2>
 
       <!-- TODO: Add a paragraph ('p') with dummy text for the week's detailed notes. -->
-      <p>This week we'll cover the fundamentals of HTML including basic tags, document structure, semantic elements, and
+      <p id="week-description">This week we'll cover the fundamentals of HTML including basic tags, document structure, semantic elements, and
         best practices for creating accessible web pages. You'll learn how to structure content using headings,
         paragraphs, lists, and links.</p>
 
@@ -50,7 +54,7 @@
       <h2>Exercises & Resources</h2>
 
       <!-- TODO: Use an unordered list ('ul') to display the links for the week. -->
-      <ul>
+      <ul id="week-links-list">
 
         <!-- TODO: Add list items ('li') with anchor tags ('a') for each resource. Use dummy links for now. -->
         <!-- Example: <li><a href="#">Exercise 1 - Basic Tags</a></li> -->
@@ -74,7 +78,7 @@
 
       <!-- Subsection 2.1: Existing Comments -->
       <!-- TODO: Add a container (like a 'div') for the list of comments. -->
-      <div class="comments-list">
+      <div id="comment-list" class="comments-list">
 
         <!-- TODO: Add 1-2 dummy comments to show the structure. -->
         <!-- Example Comment 1: -->
@@ -93,7 +97,7 @@
 
       <!-- Subsection 2.2: Add a Comment Form -->
       <!-- TODO: Create a 'form' for users to post new comments. Action can be '#'. -->
-      <form action="#">
+      <form id="comment-form" action="#">
 
         <!-- TODO: Use a 'fieldset' to group the controls. -->
         <fieldset>
@@ -104,8 +108,8 @@
                          - label 'for': "new-comment"
                          - textarea 'id': "new-comment", required -->
           <label for="new-comment">Your Comment:</label>
-          <textarea id="new-comment" required></textarea>
-
+          <textarea id="new-comment-text" required></textarea>
+          
           <!-- TODO: Add a 'button' to submit the comment.
                          - type="submit", Text: "Post Comment" -->
           <button type="submit">Post Comment</button>
@@ -123,7 +127,6 @@
   </main>
 
 
-
 </body>
 
-</html>
+</html>            
