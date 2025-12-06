@@ -19,8 +19,8 @@
 |-------------------------------------|-------------|
 | AZZAM ESAM QAID ALQURADHI           | Task 1      |
 | ABDULRAHMAN AHMED ABDULLA MOHAMED   | Task 2      |
-| HUSAIN ALI MERZA SALEH              | Task 3      |
-| HUSSAIN ALI JASIM ANAN              | Task 4      |
+| HUSSAIN ALI JASIM ANAN              | Task 3      |
+| HUSAIN ALI MERZA SALEH              | Task 4      |
 
 ---
 
