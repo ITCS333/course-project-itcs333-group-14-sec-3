@@ -134,12 +134,12 @@ async function handleAddComment(event) {
   let author = 'Student';
 
   try {
-    if (typeof AuthSession !== 'undefined' && AuthSession.isLoggedIn()) {
-      const user = AuthSession.getSession ? AuthSession.getSession() : null;
+  if (typeof AuthSession !== 'undefined' && AuthSession.isLoggedIn()) {
+    const user = AuthSession.getSession ? AuthSession.getSession() : null;
 
-      if (user) {
-        // login.js stores: { email, is_admin }
-        author = user.email || 'Student';
+    if (user) {
+      // Show the user's real name if available, otherwise email
+       author = user.name && user.name.trim() !== '' ? user.name : user.email;
 
         // If the user is admin, add a label
         if (AuthSession.isAdmin && AuthSession.isAdmin()) {
