@@ -130,7 +130,28 @@ async function handleAddComment(event) {
   const text = newCommentText.value.trim();
   if (!text) return;
 
-  const newComment = { author: 'Student', text };
+  // Determine author based on logged-in user (if available)
+  let author = 'Student';
+
+  try {
+    if (typeof AuthSession !== 'undefined' && AuthSession.isLoggedIn()) {
+      const user = AuthSession.getSession ? AuthSession.getSession() : null;
+
+      if (user) {
+        // login.js stores: { email, is_admin }
+        author = user.email || 'Student';
+
+        // If the user is admin, add a label
+        if (AuthSession.isAdmin && AuthSession.isAdmin()) {
+          author += ' (Admin)';
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Could not read auth session, defaulting to \"Student\".', e);
+  }
+
+  const newComment = { author, text };
 
   // Try to save the comment via the API first
   try {
@@ -159,6 +180,7 @@ async function handleAddComment(event) {
   renderComments();
   newCommentText.value = '';
 }
+
 
 /**
  * TODO: Implement an `initializePage` function.

@@ -20,8 +20,20 @@
     <title>Manage Assignments</title>
     <link rel="stylesheet" href="../common/styles.css">
     <script src="admin.js" defer></script>
+    <script src="../auth/session.js"></script>
+    <script>
+      // Require the user to be logged in
+      AuthSession.requireAuth('../auth/login.html');
+
+      (function () {
+        if (!AuthSession.isAdmin || !AuthSession.isAdmin()) {
+          window.location.href = '../index.html';
+        }
+      })();
+    </script>
 </head>
 <body class="bg-light">
+   
 
     <!-- TODO: Create a 'header' with a main heading ('h1') "Manage Assignments". -->
     <header class="container my-4">
@@ -140,5 +152,9 @@
         </section>
 
     </main>
+    <p class="container mb-5">
+      <a href="list.html">View assignments</a>
+    </p>
+
 </body>
 </html>

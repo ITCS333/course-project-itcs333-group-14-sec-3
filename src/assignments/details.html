@@ -17,6 +17,11 @@
     <title>Assignment Details</title>
     <link rel="stylesheet" href="../common/styles.css">
     <script src="details.js" defer></script>
+    <script src="../auth/session.js"></script>
+    <script>
+      // Require login before viewing assignment details and comments
+      AuthSession.requireAuth('../auth/login.html');
+    </script>
 </head>
 <body class="bg-light">
     <!-- TODO: Create a 'header' with a main heading ('h1'). Use a dummy title like "Assignment 1: HTML Basics". -->

@@ -17,7 +17,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Course Assignments</title>
     <link rel="stylesheet" href="../common/styles.css">
-    <script src="list.js" defer></script>
+    <script src="../auth/session.js"></script>
+    <script>
+      // Require login before viewing the assignments list
+      AuthSession.requireAuth('../auth/login.html');
+    </script>
+      <script src="list.js" defer></script>
 </head>
 <body class="bg-light">
 
