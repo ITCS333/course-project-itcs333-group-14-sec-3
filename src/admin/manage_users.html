@@ -1,185 +1,203 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- Meta tags -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Portal — ITCS333</title>
 
-  <title>Admin Portal</title>
-
-  <!-- أولاً: Pico (ستايل بسيط) -->
-  <link
-    rel="stylesheet"
-    href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css"
-  />
-
-  <!-- ثانياً: الستايل العام للموقع -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../style.css" />
+
+  <!-- Auth and Session Scripts -->
+  <script src="../auth/session.js"></script>
+  <script src="../auth/logout.js"></script>
+  <script>
+    // Require authentication on page load
+    AuthSession.requireAuth('../auth/login.html');
+  </script>
 </head>
+
 <body>
-  <!-- Header -->
-  <header class="page">
-    <h1>Admin Portal</h1>
-    <p class="home-card-subtitle">
-      Change your password and manage all registered students from this page.
-    </p>
+  <!-- Header with Welcome and Logout -->
+  <header class="admin-header">
+    <div class="admin-header-content">
+      <div>
+        <h1 id="welcome-message">Welcome, Dr. Abdulla Subah</h1>
+        <p class="header-subtitle">Manage students and system settings</p>
+      </div>
+      <button class="logout-btn header-logout">Logout</button>
+    </div>
   </header>
 
   <!-- Main Content -->
-  <main class="page">
-    <div class="card" style="margin-bottom: 24px;">
-      <!-- ================= Password Management ================= -->
-      <section>
-        <h2>Change Your Password</h2>
+  <main class="admin-container">
+    <!-- Tabs Navigation -->
+    <div class="admin-tabs">
+      <button class="admin-tab-btn active" data-tab="students">Manage Students</button>
+      <button class="admin-tab-btn" data-tab="password">Change Password</button>
+    </div>
 
-        <form id="password-form" action="#" class="form-grid">
-          <fieldset>
-            <legend>Password Update</legend>
+    <!-- Students Tab -->
+    <div id="students-tab" class="admin-tab-content active">
+      <section class="admin-section">
+        <div class="section-header">
+          <h2>Manage Students</h2>
+          <button id="add-student-toggle" class="btn">+ Add New Student</button>
+        </div>
 
-            <label for="current-password">
-              <span>Current Password</span>
-              <input
-                type="password"
-                id="current-password"
-                required
-              />
-            </label>
+        <!-- Add Student Form (Hidden by default) -->
+        <div id="add-student-form-container" class="admin-form" style="display: none;">
+          <h3>Add New Student</h3>
+          <form id="add-student-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="student-name">Full Name *</label>
+                <input type="text" id="student-name" required />
+              </div>
+              <div class="form-group">
+                <label for="student-email">Email *</label>
+                <input type="email" id="student-email" required />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="default-password">Default Password</label>
+                <input type="text" id="default-password" value="Password123" />
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn">Add Student</button>
+              <button type="button" id="cancel-add-student" class="btn btn-secondary">Cancel</button>
+            </div>
+            <div id="add-student-error" class="error-message" style="display: none;"></div>
+            <div id="add-student-success" class="success-message" style="display: none;"></div>
+          </form>
+        </div>
 
-            <label for="new-password">
-              <span>New Password</span>
-              <input
-                type="password"
-                id="new-password"
-                minlength="8"
-                required
-              />
-            </label>
+        <!-- Student List Table -->
+        <div class="students-list-container">
+          <div class="list-controls">
+            <input 
+              type="search" 
+              id="search-students" 
+              class="search-input" 
+              placeholder="Search students by name or email..."
+            />
+          </div>
 
-            <label for="confirm-password">
-              <span>Confirm New Password</span>
-              <input
-                type="password"
-                id="confirm-password"
-                required
-              />
-            </label>
-
-            <button type="submit" id="change" class="btn">
-              Update Password
-            </button>
-          </fieldset>
-        </form>
+          <div class="table-wrapper">
+            <table class="students-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>ID</th>
+                  <th>Email</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="students-table-body">
+                <tr>
+                  <td colspan="4" class="text-center">Loading students...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="no-students" class="no-data" style="display: none;">No students found</div>
+        </div>
       </section>
     </div>
 
-    <div class="card">
-      <!-- ================= Student Management ================= -->
-      <section>
-        <h2>Manage Students</h2>
+    <!-- Change Password Tab -->
+    <div id="password-tab" class="admin-tab-content">
+      <section class="admin-section admin-section-centered">
+        <h2>Change Your Password</h2>
+        
+        <div class="admin-form admin-form-centered">
+          <form id="change-password-form">
+            <div class="form-group">
+              <label for="current-password">Current Password</label>
+              <div class="password-field">
+                <input type="password" id="current-password" required />
+                <button type="button" class="toggle-password toggle-current" aria-label="Show password"></button>
+              </div>
+            </div>
 
-        <!-- Add New Student -->
-        <details>
-          <summary>Add New Student</summary>
+            <div class="form-group">
+              <label for="new-password">New Password</label>
+              <div class="password-field">
+                <input type="password" id="new-password" minlength="8" required />
+                <button type="button" class="toggle-password toggle-new" aria-label="Show password"></button>
+              </div>
+            </div>
 
-          <form id="add-student-form" action="#" class="form-grid" style="margin-top: 10px;">
-            <fieldset>
-              <legend>New Student Information</legend>
+            <div class="form-group">
+              <label for="confirm-password">Confirm New Password</label>
+              <div class="password-field">
+                <input type="password" id="confirm-password" required />
+                <button type="button" class="toggle-password toggle-confirm" aria-label="Show password"></button>
+              </div>
+            </div>
 
-              <label for="student-name">
-                <span>Full Name</span>
-                <input
-                  type="text"
-                  id="student-name"
-                  required
-                />
-              </label>
-
-              <label for="student-id">
-                <span>Student ID</span>
-                <input
-                  type="text"
-                  id="student-id"
-                  required
-                />
-              </label>
-
-              <label for="student-email">
-                <span>Email</span>
-                <input
-                  type="email"
-                  id="student-email"
-                  required
-                />
-              </label>
-
-              <label for="default-password">
-                <span>Default Password</span>
-                <input
-                  type="text"
-                  id="default-password"
-                  value="password123"
-                />
-              </label>
-
-              <button type="submit" id="add" class="btn">
-                Add Student
-              </button>
-            </fieldset>
+            <button type="submit" class="btn" style="width: 100%;">Update Password</button>
+            
+            <div id="password-error" class="error-message" style="display: none; margin-top: 1rem;"></div>
+            <div id="password-success" class="success-message" style="display: none; margin-top: 1rem;"></div>
           </form>
-        </details>
-
-        <!-- Student List -->
-        <h3 style="margin-top: 18px;">Registered Students</h3>
-
-        <label for="search-input">
-          <span>Search Students</span>
-          <input
-            type="search"
-            id="search-input"
-            placeholder="Search by name..."
-          />
-        </label>
-
-        <table id="student-table" class="table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Student ID</th>
-              <th>Email</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            <tr>
-              <td>John Doe</td>
-              <td>20230001</td>
-              <td>john.doe@example.com</td>
-              <td>
-                <button type="button" class="btn">Edit</button>
-                <button type="button" class="btn btn-secondary secondary">
-                  Delete
-                </button>
-              </td>
-            </tr>
-
-            <tr>
-              <td>Jane Smith</td>
-              <td>20230002</td>
-              <td>jane.smith@example.com</td>
-              <td>
-                <button type="button" class="btn">Edit</button>
-                <button type="button" class="btn btn-secondary secondary">
-                  Delete
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        </div>
       </section>
     </div>
   </main>
 
-  <script src="manage_users.js" defer></script>
+  <script src="../auth/logout.js"></script>
+  <script src="manage.js" defer></script>
+
+  <!-- Confirmation Modal -->
+  <div id="confirmation-modal" class="modal" style="display: none;">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+      <h2 id="modal-title">Confirm Action</h2>
+      <p id="modal-message">Are you sure?</p>
+         <div class="modal-actions">
+           <!-- explicit type to avoid accidental form submits when buttons are present on the page -->
+           <button id="modal-confirm-btn" type="button" class="btn btn-danger">Confirm</button>
+           <button id="modal-cancel-btn" type="button" class="btn btn-secondary">Cancel</button>
+         </div>
+    </div>
+  </div>
+
+  <!-- Edit Student Modal -->
+  <div id="edit-student-modal" class="modal" style="display: none;">
+    <div class="modal-overlay"></div>
+    <div class="modal-content" style="max-width: 500px;">
+      <h2>Edit Student</h2>
+      <form id="edit-student-form">
+        <div class="form-group">
+          <label for="edit-student-name">Full Name</label>
+          <input type="text" id="edit-student-name" required />
+        </div>
+
+        <div class="form-group">
+          <label for="edit-student-email">Email</label>
+          <input type="email" id="edit-student-email" required />
+        </div>
+
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="reset-password-checkbox" />
+            Reset Password to "Password123"
+          </label>
+        </div>
+
+        <div id="edit-student-error" class="error-message" style="display: none;"></div>
+        <div id="edit-student-success" class="success-message" style="display: none;"></div>
+      </form>
+
+      <div class="modal-actions" style="margin-top: 1.5rem;">
+        <button type="submit" id="edit-student-submit" class="btn btn-danger">Save Changes</button>
+        <button type="button" id="cancel-edit-student" class="btn btn-secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
