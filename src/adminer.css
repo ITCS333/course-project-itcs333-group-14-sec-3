@@ -1,0 +1,325 @@
+:root {
+	--bg: #f5f6fb;
+	--surface: #ffffff;
+	--surface-soft: #ffffff;
+	--border: rgba(148, 163, 184, 0.5);
+	--accent: #2563eb;
+	--accent-soft: rgba(37, 99, 235, 0.06);
+	--text: #111827;
+	--muted: #6b7280;
+	--danger: #dc2626;
+	--radius: 0.9rem;
+	--shadow-soft: 0 14px 35px rgba(15, 23, 42, 0.08);
+}
+
+/* reset بسيط */
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	margin: 0;
+	font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+	background: var(--bg);
+	color: var(--text);
+	min-height: 100vh;
+}
+
+/* ========== layout عام ========== */
+
+.home-layout {
+	min-height: 100vh;
+	display: flex;
+	align-items: flex-start;
+}
+
+.home-shell {
+	width: 100%;
+	max-width: 1080px;
+	margin: 32px auto 40px;
+	padding: 0 20px;
+	display: grid;
+	grid-template-columns: minmax(0, 3.2fr) minmax(0, 2.3fr);
+	gap: 32px;
+	align-items: flex-start;
+}
+
+@media (max-width: 900px) {
+	.home-shell {
+		grid-template-columns: minmax(0, 1fr);
+		margin-top: 24px;
+	}
+}
+
+/* ========== الهيرو (الجزء العلوي) ========== */
+
+.home-tag {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 4px 10px;
+	font-size: 0.78rem;
+	border-radius: 999px;
+	border: 1px solid rgba(148, 163, 184, 0.5);
+	background: #e5edff;
+	color: #1d4ed8;
+	margin-bottom: 14px;
+}
+
+.home-tag-dot {
+	width: 6px;
+	height: 6px;
+	border-radius: 999px;
+	background: #22c55e;
+}
+
+.home-hero-title {
+	font-size: clamp(2rem, 3vw, 2.4rem);
+	line-height: 1.1;
+	letter-spacing: 0.01em;
+	margin-bottom: 10px;
+	font-weight: 700;
+}
+
+.home-hero-sub {
+	font-size: 0.95rem;
+	color: var(--muted);
+	max-width: 30rem;
+	margin-bottom: 20px;
+}
+
+/* ========== أزرار ========== */
+
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 9px 20px;
+	border-radius: 999px;
+	border: none;
+	cursor: pointer;
+	font-weight: 600;
+	background: var(--accent);
+	color: #ffffff;
+	font-size: 0.95rem;
+	transition: transform 0.12s, box-shadow 0.12s, background 0.12s;
+}
+
+.btn:hover {
+	transform: translateY(-1px);
+	box-shadow: 0 10px 24px rgba(37, 99, 235, 0.35);
+	background: #1d4ed8;
+}
+
+.btn-secondary {
+	background: #ffffff;
+	color: var(--text);
+	border: 1px solid var(--border);
+}
+.btn-secondary:hover {
+	background: #eef2ff;
+}
+
+/* ========== الكارد حق الروابط ========== */
+
+.home-card {
+	background: var(--surface);
+	border-radius: var(--radius);
+	padding: 18px 20px 18px;
+	border: 1px solid var(--border);
+	box-shadow: var(--shadow-soft);
+}
+
+.home-card-title {
+	font-size: 1.05rem;
+	font-weight: 600;
+	margin-bottom: 4px;
+}
+
+.home-card-subtitle {
+	font-size: 0.85rem;
+	color: var(--muted);
+	margin-bottom: 14px;
+}
+
+/* الكروت الداخلية للروابط */
+
+.home-links {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.home-link {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 10px 14px;
+	border-radius: 0.75rem;
+	text-decoration: none;
+	background: #f9fafb;
+	border: 1px solid rgba(148, 163, 184, 0.6);
+	color: var(--text);
+	transition: border 0.13s ease, transform 0.13s ease, box-shadow 0.13s ease,
+		background 0.13s ease;
+}
+
+.home-link:hover {
+	border-color: var(--accent);
+	background: #eef2ff;
+	transform: translateY(-1px);
+	box-shadow: 0 8px 18px rgba(148, 163, 184, 0.5);
+}
+
+.home-link-main {
+	font-size: 0.9rem;
+	font-weight: 600;
+}
+
+.home-link-desc {
+	font-size: 0.78rem;
+	color: var(--muted);
+}
+
+.home-link-icon {
+	font-size: 1rem;
+	color: var(--accent);
+}
+
+/* ========== أشياء مشتركة نستخدمها لاحقاً في باقي الصفحات ========== */
+
+.page {
+	max-width: 1080px;
+	margin: 32px auto 40px;
+	padding: 0 20px;
+}
+
+.card {
+	background: var(--surface);
+	border-radius: var(--radius);
+	padding: 18px 20px;
+	border: 1px solid var(--border);
+	box-shadow: var(--shadow-soft);
+}
+
+h1, h2, h3 {
+	font-weight: 600;
+}
+
+p {
+	margin-bottom: 0.75rem;
+}
+
+/* فورمات */
+.form-grid {
+	display: grid;
+	gap: 14px;
+}
+
+label span {
+	display: block;
+	margin-bottom: 4px;
+	font-size: 0.8rem;
+	color: var(--muted);
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="date"],
+select,
+textarea {
+	width: 100%;
+	padding: 9px 12px;
+	border-radius: 0.7rem;
+	border: 1px solid var(--border);
+	background: #ffffff;
+	color: var(--text);
+	outline: none;
+	font-size: 0.9rem;
+	transition: border 0.13s, box-shadow 0.13s, background 0.13s;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+	border-color: var(--accent);
+	box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.6);
+}
+
+/* جدول عام */
+.table {
+	width: 100%;
+	border-collapse: collapse;
+	margin-top: 12px;
+	font-size: 0.9rem;
+}
+
+.table th,
+.table td {
+	padding: 9px 10px;
+	border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+	text-align: left;
+}
+
+.table th {
+	color: var(--muted);
+	font-weight: 500;
+}
+
+/* حقل الباسورد + زر show/hide (للاستخدام مع login) */
+
+.password-field {
+	position: relative;
+}
+
+.password-field input {
+	padding-right: 42px;
+}
+
+.toggle-password {
+	position: absolute;
+	right: 10px;
+	top: 50%;
+	transform: translateY(-50%);
+	border: none;
+	background: transparent;
+	color: var(--muted);
+	cursor: pointer;
+	font-size: 0.8rem;
+}
+.toggle-password:hover {
+	color: var(--accent);
+}
+/* توسيط محتوى الهيرو (العنوان + النص + الزر) */
+.home-layout {
+	align-items: center;           /* يخلي المحتوى في منتصف الشاشة عموديًا */
+}
+
+.home-shell {
+	margin: 0 auto 40px;           /* يشيل المسافة الكبيرة من فوق */
+}
+
+.home-hero {
+	text-align: center;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
+.home-hero .home-tag {
+	margin-left: auto;
+	margin-right: auto;            /* يخلي الشيب الأزرق في النص */
+}
+
+.home-hero-sub {
+	max-width: 32rem;
+}
+.home-card {
+	margin-top: 28px;              /* يخلي كرت Site Navigation ينزل شوي تحت */
+}

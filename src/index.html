@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ITCS333 — Course Landing</title>
+
+  <!-- Pico (light utility CSS) + modern font -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Auth and Session Scripts -->
+  <script src="auth/session.js"></script>
+  <script src="auth/logout.js"></script>
+  <script>
+    // If admin is logged in, redirect to admin panel
+    if (AuthSession.isLoggedIn() && AuthSession.isAdmin()) {
+      window.location.href = 'admin/manage_users.html';
+    }
+    // Students can view the home page even when logged in
+  </script>
+</head>
+
+<body>
+  <main class="container">
+    <section class="hero">
+      <div class="course-tag">ITCS333: Internet Software Development</div>
+      <h1>Welcome to the Course Portal</h1>
+      <p class="lead">This public landing page introduces the course and directs users to login to access resources, weekly material, assignments, and discussions.</p>
+
+      <div class="login-row">
+        <!-- Login icon button -->
+        <a href="auth/login.html" id="login-btn" class="login-btn" aria-label="Login" title="Login">
+          <!-- simple user SVG icon -->
+          <svg class="login-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M12 12a4 4 0 1 0-0.001-8.001A4 4 0 0 0 12 12zm0 2c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5z"/>
+          </svg>
+        </a>
+        <a href="auth/login.html" class="login-label">Login</a>
+
+        <!-- Sections stacked under the login -->
+        <nav class="sections" aria-label="Site sections">
+          <a href="auth/login.html" class="protected-link" data-section="resources">
+            <div>
+              <div class="label">Resources</div>
+              <div class="desc">Course files and reading material</div>
+            </div>
+            <span>→</span>
+          </a>
+
+          <a href="auth/login.html" class="protected-link" data-section="weekly">
+            <div>
+              <div class="label">Weekly Breakdown</div>
+              <div class="desc">Week-by-week topics and materials</div>
+            </div>
+            <span>→</span>
+          </a>
+
+          <a href="auth/login.html" class="protected-link" data-section="assignments">
+            <div>
+              <div class="label">Assignments</div>
+              <div class="desc">Submit and review homework</div>
+            </div>
+            <span>→</span>
+          </a>
+
+          <a href="auth/login.html" class="protected-link" data-section="discussion">
+            <div>
+              <div class="label">Discussion</div>
+              <div class="desc">Course forums and topic threads</div>
+            </div>
+            <span>→</span>
+          </a>
+        </nav>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Update UI based on login status
+    (function(){
+      const isLoggedIn = AuthSession.isLoggedIn();
+
+      // Protected links: redirect to login if not logged in
+      document.querySelectorAll('.protected-link').forEach(a => {
+        a.addEventListener('click', function(e){
+          if(!isLoggedIn){
+            e.preventDefault();
+            window.location.href = 'auth/login.html';
+          }
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
