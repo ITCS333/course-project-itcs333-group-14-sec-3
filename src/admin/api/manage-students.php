@@ -1,260 +1,274 @@
 <?php
-session_start();
-header("Content-Type: application/json");
+session_start(); 
 
-// Check if user is authenticated and is admin
-if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== 1) {
+header("Content-Type: application/json");
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type");
+
+if ($_SERVER["REQUEST_METHOD"] === "OPTIONS") {
+    http_response_code(200);
+    exit;
+}
+
+if (
+    empty($_SESSION['logged_in']) ||
+    empty($_SESSION['is_admin']) ||
+    $_SESSION['is_admin'] !== 1
+) {
     http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+    echo json_encode(['success' => false, 'message' => 'Access denied']);
     exit;
 }
 
 require_once __DIR__ . "/../../Database.php";
+$db = (new Database())->getConnection();
 
-$method = $_SERVER['REQUEST_METHOD'];
-$action = $_GET['action'] ?? null;
+$method = $_SERVER["REQUEST_METHOD"];
+$input  = json_decode(file_get_contents("php://input"), true) ?? [];
+
+function sendResponse($data, $status = 200) {
+    http_response_code($status);
+    echo json_encode($data);
+    exit;
+}
+
+function validateEmail($email) {
+    return filter_var($email, FILTER_VALIDATE_EMAIL);
+}
+
+function sanitizeInput($data) {
+    return htmlspecialchars(strip_tags(trim($data)));
+}
+
+function getStudents($db) {
+    $search = $_GET["search"] ?? "";
+
+    $sql = "SELECT 
+                id,
+                name,
+                email,
+                SUBSTRING_INDEX(email, '@', 1) AS student_id
+            FROM users
+            WHERE is_admin = 0";
+
+    if ($search !== "") {
+        $sql .= " AND (
+                    name LIKE :search
+                    OR email LIKE :search
+                    OR SUBSTRING_INDEX(email, '@', 1) LIKE :search
+                  )";
+    }
+
+    $stmt = $db->prepare($sql);
+
+    if ($search !== "") {
+        $stmt->bindValue(":search", "%$search%", PDO::PARAM_STR);
+    }
+
+    $stmt->execute();
+    $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    sendResponse(["success" => true, "data" => $students]);
+}
+
+function getStudentById($db, $id) {
+    $stmt = $db->prepare(
+        "SELECT 
+            id,
+            name,
+            email,
+            SUBSTRING_INDEX(email, '@', 1) AS student_id
+         FROM users
+         WHERE id = ? AND is_admin = 0"
+    );
+    $stmt->execute([$id]);
+    $student = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$student) {
+        sendResponse(["success" => false, "message" => "Student not found"], 404);
+    }
+
+    sendResponse(["success" => true, "data" => $student]);
+}
+
+function createStudent($db, $data) {
+    if (
+        empty($data["student_id"]) ||
+        empty($data["name"]) ||
+        empty($data["email"]) ||
+        empty($data["password"])
+    ) {
+        sendResponse(["success" => false, "message" => "Missing fields"], 400);
+    }
+
+    if (!validateEmail($data["email"])) {
+        sendResponse(["success" => false, "message" => "Invalid email"], 400);
+    }
+
+    $localPart = strstr($data["email"], '@', true);
+    if ($localPart !== $data["student_id"]) {
+        sendResponse([
+            "success" => false,
+            "message" => "Student ID must match the part before '@' in the email."
+        ], 400);
+    }
+
+    $passwordHash = password_hash($data["password"], PASSWORD_DEFAULT);
+
+    $stmt = $db->prepare(
+        "INSERT INTO users (name, email, password, is_admin)
+         VALUES (?, ?, ?, 0)"
+    );
+
+    try {
+        $stmt->execute([
+            sanitizeInput($data["name"]),
+            sanitizeInput($data["email"]),
+            $passwordHash
+        ]);
+
+        $id = (int)$db->lastInsertId();
+
+        sendResponse([
+            "success" => true,
+            "message" => "Student created",
+            "data"    => [
+                "id"         => $id,
+                "student_id" => $data["student_id"],
+                "name"       => $data["name"],
+                "email"      => $data["email"],
+            ]
+        ], 201);
+
+    } catch (PDOException $e) {
+
+        if ($e->getCode() === "23000") {
+            sendResponse(["success" => false, "message" => "User with this email already exists"], 409);
+        }
+        sendResponse(["success" => false, "message" => "Database error"], 500);
+    }
+}
+
+
+function updateStudent($db, $id, $data) {
+    if (empty($data["name"]) || empty($data["email"])) {
+        sendResponse(["success" => false, "message" => "Name and email are required"], 400);
+    }
+
+    if (!validateEmail($data["email"])) {
+        sendResponse(["success" => false, "message" => "Invalid email"], 400);
+    }
+
+    $stmt = $db->prepare(
+        "UPDATE users 
+         SET name = ?, email = ?
+         WHERE id = ? AND is_admin = 0"
+    );
+
+    try {
+        $stmt->execute([
+            sanitizeInput($data["name"]),
+            sanitizeInput($data["email"]),
+            $id
+        ]);
+
+        if ($stmt->rowCount() === 0) {
+            sendResponse(["success" => false, "message" => "Student not found or no changes"], 404);
+        }
+
+        sendResponse(["success" => true, "message" => "Student updated"]);
+
+    } catch (PDOException $e) {
+        if ($e->getCode() === "23000") {
+            sendResponse(["success" => false, "message" => "User with this email already exists"], 409);
+        }
+        sendResponse(["success" => false, "message" => "Database error"], 500);
+    }
+}
+
+
+function deleteStudent($db, $id) {
+    if (!$id) {
+        sendResponse(["success" => false, "message" => "User id required"], 400);
+    }
+
+    $stmt = $db->prepare("DELETE FROM users WHERE id = ? AND is_admin = 0");
+    $stmt->execute([$id]);
+
+    if ($stmt->rowCount() === 0) {
+        sendResponse(["success" => false, "message" => "Student not found"], 404);
+    }
+
+    sendResponse(["success" => true, "message" => "Student deleted"]);
+}
+
+function changePassword($db, $data) {
+    if (
+        empty($data["email"]) ||
+        empty($data["current_password"]) ||
+        empty($data["new_password"])
+    ) {
+        sendResponse(["success" => false, "message" => "Missing fields"], 400);
+    }
+
+    if (strlen($data["new_password"]) < 8) {
+        sendResponse(["success" => false, "message" => "Password too short"], 400);
+    }
+
+    $stmt = $db->prepare(
+        "SELECT password FROM users WHERE email = ?"
+    );
+    $stmt->execute([$data["email"]]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$row || !password_verify($data["current_password"], $row["password"])) {
+        sendResponse(["success" => false, "message" => "Wrong email or password"], 401);
+    }
+
+    $newHash = password_hash($data["new_password"], PASSWORD_DEFAULT);
+    $update = $db->prepare(
+        "UPDATE users SET password = ? WHERE email = ?"
+    );
+    $update->execute([$newHash, $data["email"]]);
+
+    sendResponse(["success" => true, "message" => "Password updated"]);
+}
 
 try {
-    $pdo = (new Database())->getConnection();
+    switch ($method) {
+        case "GET":
+            if (isset($_GET["id"])) {
+                getStudentById($db, (int)$_GET["id"]);
+            }
+            getStudents($db);
+            break;
 
-    // GET - List all students
-    if ($method === 'GET' && $action === 'list') {
-        $sql = "SELECT id, name, email FROM users WHERE is_admin = 0 ORDER BY name ASC";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute();
-        $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        case "POST":
+            if (isset($_GET["action"]) && $_GET["action"] === "change_password") {
+                changePassword($db, $input);
+            }
+            createStudent($db, $input);
+            break;
 
-        echo json_encode([
-            'success' => true,
-            'students' => $students
-        ]);
-        exit;
+        case "PUT":
+            if (!isset($_GET["id"])) {
+                sendResponse(["success" => false, "message" => "User id required"], 400);
+            }
+            updateStudent($db, (int)$_GET["id"], $input);
+            break;
+
+        case "DELETE":
+            if (!isset($_GET["id"])) {
+                sendResponse(["success" => false, "message" => "User id required"], 400);
+            }
+            deleteStudent($db, (int)$_GET["id"]);
+            break;
+
+        default:
+            sendResponse(["success" => false, "message" => "Method not allowed"], 405);
     }
-
-    // GET student by ID
-    if ($method === 'GET' && $action === 'get') {
-        $studentId = $_GET['id'] ?? null;
-
-        if (!$studentId) {
-            echo json_encode(['success' => false, 'message' => 'Missing student ID']);
-            exit;
-        }
-
-        $sql = "SELECT id, name, email FROM users WHERE id = :id AND is_admin = 0";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute(['id' => $studentId]);
-        $student = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if (!$student) {
-            echo json_encode(['success' => false, 'message' => 'Student not found']);
-            exit;
-        }
-
-        echo json_encode([
-            'success' => true,
-            'student' => $student
-        ]);
-        exit;
-    }
-
-    // POST - Add new student
-    if ($method === 'POST' && $action === 'add') {
-        $data = json_decode(file_get_contents("php://input"), true) ?? [];
-
-        $name = $data['name'] ?? null;
-        $email = $data['email'] ?? null;
-        $password = $data['password'] ?? 'password';
-
-        // Validation
-        if (!$name || !$email) {
-            echo json_encode(['success' => false, 'message' => 'Missing name or email']);
-            exit;
-        }
-
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            echo json_encode(['success' => false, 'message' => 'Invalid email format']);
-            exit;
-        }
-
-        // Check if email already exists
-        $checkSql = "SELECT id FROM users WHERE email = :email";
-        $checkStmt = $pdo->prepare($checkSql);
-        $checkStmt->execute(['email' => $email]);
-        
-        if ($checkStmt->fetch()) {
-            echo json_encode(['success' => false, 'message' => 'Email already exists']);
-            exit;
-        }
-
-        // Hash password
-        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-
-        // Insert student
-        $insertSql = "INSERT INTO users (name, email, password, is_admin) VALUES (:name, :email, :password, 0)";
-        $insertStmt = $pdo->prepare($insertSql);
-        $insertStmt->execute([
-            'name' => $name,
-            'email' => $email,
-            'password' => $hashedPassword
-        ]);
-
-        echo json_encode([
-            'success' => true,
-            'message' => 'Student added successfully',
-            'student' => [
-                'id' => $pdo->lastInsertId(),
-                'name' => $name,
-                'email' => $email
-            ]
-        ]);
-        exit;
-    }
-
-    // DELETE - Delete student
-    if ($method === 'DELETE' && $action === 'delete') {
-        $data = json_decode(file_get_contents("php://input"), true) ?? [];
-        $studentId = $data['id'] ?? null;
-
-        if (!$studentId) {
-            echo json_encode(['success' => false, 'message' => 'Missing student ID']);
-            exit;
-        }
-
-        // Cannot delete if is_admin
-        $checkSql = "SELECT is_admin FROM users WHERE id = :id";
-        $checkStmt = $pdo->prepare($checkSql);
-        $checkStmt->execute(['id' => $studentId]);
-        $user = $checkStmt->fetch(PDO::FETCH_ASSOC);
-
-        if (!$user || $user['is_admin'] === 1) {
-            echo json_encode(['success' => false, 'message' => 'Cannot delete this user']);
-            exit;
-        }
-
-        $deleteSql = "DELETE FROM users WHERE id = :id";
-        $deleteStmt = $pdo->prepare($deleteSql);
-        $deleteStmt->execute(['id' => $studentId]);
-
-        echo json_encode(['success' => true, 'message' => 'Student deleted successfully']);
-        exit;
-    }
-
-    // PUT - Update student
-    if ($method === 'PUT' && $action === 'update') {
-        $data = json_decode(file_get_contents("php://input"), true) ?? [];
-
-        $id = $data['id'] ?? null;
-        $name = $data['name'] ?? null;
-        $email = $data['email'] ?? null;
-        $resetPassword = $data['resetPassword'] ?? false;
-
-        if (!$id || !$name || !$email) {
-            echo json_encode(['success' => false, 'message' => 'Missing required fields']);
-            exit;
-        }
-
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            echo json_encode(['success' => false, 'message' => 'Invalid email format']);
-            exit;
-        }
-
-        // Check if email is already used by another student
-        $checkEmailSql = "SELECT id FROM users WHERE email = :email AND id != :id";
-        $checkEmailStmt = $pdo->prepare($checkEmailSql);
-        $checkEmailStmt->execute(['email' => $email, 'id' => $id]);
-        
-        if ($checkEmailStmt->fetch()) {
-            echo json_encode(['success' => false, 'message' => 'Email already in use']);
-            exit;
-        }
-
-        // Update student
-        if ($resetPassword) {
-            $hashedPassword = password_hash('Password123', PASSWORD_DEFAULT);
-            $updateSql = "UPDATE users SET name = :name, email = :email, password = :password WHERE id = :id";
-            $updateStmt = $pdo->prepare($updateSql);
-            $updateStmt->execute([
-                'name' => $name,
-                'email' => $email,
-                'password' => $hashedPassword,
-                'id' => $id
-            ]);
-        } else {
-            $updateSql = "UPDATE users SET name = :name, email = :email WHERE id = :id";
-            $updateStmt = $pdo->prepare($updateSql);
-            $updateStmt->execute([
-                'name' => $name,
-                'email' => $email,
-                'id' => $id
-            ]);
-        }
-
-        echo json_encode([
-            'success' => true,
-            'message' => 'Student updated successfully' . ($resetPassword ? ' and password reset to Password123' : '')
-        ]);
-        exit;
-    }
-
-    // POST - Change password
-    if ($method === 'POST' && $action === 'changePassword') {
-        $data = json_decode(file_get_contents("php://input"), true) ?? [];
-
-        $currentPassword = $data['currentPassword'] ?? null;
-        $newPassword = $data['newPassword'] ?? null;
-        $confirmPassword = $data['confirmPassword'] ?? null;
-
-        // Validation
-        if (!$currentPassword || !$newPassword || !$confirmPassword) {
-            echo json_encode(['success' => false, 'message' => 'All fields are required']);
-            exit;
-        }
-
-        if ($newPassword !== $confirmPassword) {
-            echo json_encode(['success' => false, 'message' => 'Passwords do not match']);
-            exit;
-        }
-
-        if (strlen($newPassword) < 8) {
-            echo json_encode(['success' => false, 'message' => 'Password must be at least 8 characters']);
-            exit;
-        }
-
-        // Get current user's hashed password
-        $sql = "SELECT password FROM users WHERE id = :id";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute(['id' => $_SESSION['user_id']]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if (!$user) {
-            echo json_encode(['success' => false, 'message' => 'User not found']);
-            exit;
-        }
-
-        // Verify current password
-        if (!password_verify($currentPassword, $user['password'])) {
-            echo json_encode(['success' => false, 'message' => 'Current password is incorrect']);
-            exit;
-        }
-
-        // Hash new password and update
-        $hashedNewPassword = password_hash($newPassword, PASSWORD_DEFAULT);
-        $updateSql = "UPDATE users SET password = :password WHERE id = :id";
-        $updateStmt = $pdo->prepare($updateSql);
-        $updateStmt->execute([
-            'password' => $hashedNewPassword,
-            'id' => $_SESSION['user_id']
-        ]);
-
-        echo json_encode(['success' => true, 'message' => 'Password updated successfully']);
-        exit;
-    }
-
-    echo json_encode(['success' => false, 'message' => 'Invalid action']);
-
-} catch (PDOException $e) {
-    error_log("Student Management Error: " . $e->getMessage());
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Database error']);
+} catch (Exception $e) {
+    error_log("Admin API error: " . $e->getMessage());
+    sendResponse(["success" => false, "message" => "Server error"], 500);
 }
-?>
