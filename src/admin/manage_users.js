@@ -1,523 +1,413 @@
+const API_BASE_URL = "api/index.php";
 
-// ===== Admin Panel Functionality =====
+let students = [];
 
-// Get references to DOM elements
-const addStudentToggleBtn = document.getElementById('add-student-toggle');
-const addStudentFormContainer = document.getElementById('add-student-form-container');
-const addStudentForm = document.getElementById('add-student-form');
-const cancelAddStudentBtn = document.getElementById('cancel-add-student');
-const changePasswordForm = document.getElementById('change-password-form');
-const searchStudentsInput = document.getElementById('search-students');
-const studentsTableBody = document.getElementById('students-table-body');
-const noStudentsDiv = document.getElementById('no-students');
+const studentTableBody = document.querySelector("#student-table tbody");
+const addStudentForm = document.getElementById("add-student-form");
+const changePasswordForm = document.getElementById("password-form");
+const searchInput = document.getElementById("search-input");
+const tableHeaders = document.querySelectorAll("#student-table thead th");
 
-// Edit modal references
-const editStudentModal = document.getElementById('edit-student-modal');
-const editStudentForm = document.getElementById('edit-student-form');
-const editStudentSubmitBtn = document.getElementById('edit-student-submit');
-const cancelEditStudentBtn = document.getElementById('cancel-edit-student');
-const editStudentName = document.getElementById('edit-student-name');
-const editStudentEmail = document.getElementById('edit-student-email');
-const resetPasswordCheckbox = document.getElementById('reset-password-checkbox');
-
-// Modal references
-const confirmationModal = document.getElementById('confirmation-modal');
-const modalTitle = document.getElementById('modal-title');
-const modalMessage = document.getElementById('modal-message');
-const modalConfirmBtn = document.getElementById('modal-confirm-btn');
-const modalCancelBtn = document.getElementById('modal-cancel-btn');
-const modalOverlay = document.querySelector('.modal-overlay');
-
-let allStudents = [];
-let pendingAction = null;
-
-// ===== Initialize Page =====
-document.addEventListener('DOMContentLoaded', function() {
-  // Update welcome message with admin name from session
-  updateWelcomeMessage();
+// Toast notification helper
+function showToast(message, type = 'info') {
+  toastr.options = {
+    closeButton: true,
+    progressBar: true,
+    positionClass: "toast-top-right",
+    timeOut: 4000,
+    extendedTimeOut: 1000,
+    showEasing: "swing",
+    hideEasing: "linear",
+    showMethod: "slideDown",
+    hideMethod: "slideUp"
+  };
   
-  // Load students on page load
-  loadStudents();
-  
-  // Setup tab switching
-  setupTabs();
-  
-  // Setup modal close handlers
-  setupModalHandlers();
-
-  // Setup edit modal handlers
-  setupEditModalHandlers();
-
-  // Setup password field toggles
-  setupPasswordToggles();
-});
-
-// ===== Modal Handlers =====
-function setupModalHandlers() {
-  modalCancelBtn.addEventListener('click', function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    closeModal();
-  });
-  modalOverlay.addEventListener('click', closeModal);
-  
-  // Close modal when clicking on overlay
-  confirmationModal.addEventListener('click', function(e) {
-    if (e.target === confirmationModal || e.target === modalOverlay) {
-      closeModal();
-    }
-  });
-}
-
-function showModal(title, message, onConfirm) {
-  modalTitle.textContent = title;
-  modalMessage.textContent = message;
-  pendingAction = onConfirm;
-  confirmationModal.style.display = 'flex';
-}
-
-function closeModal() {
-  confirmationModal.style.display = 'none';
-  pendingAction = null;
-}
-
-modalConfirmBtn.addEventListener('click', async function(e) {
-  e.preventDefault();
-  e.stopPropagation();
-  if (pendingAction && typeof pendingAction === 'function') {
-    try {
-      // disable confirm button while running to prevent double clicks
-      modalConfirmBtn.disabled = true;
-      await pendingAction();
-    } catch (err) {
-      console.error('Error in modal confirm action:', err);
-    } finally {
-      modalConfirmBtn.disabled = false;
-    }
-  }
-  closeModal();
-});
-
-// ===== Tab Switching =====
-function setupTabs() {
-  const tabButtons = document.querySelectorAll('.admin-tab-btn');
-  const tabContents = document.querySelectorAll('.admin-tab-content');
-
-  tabButtons.forEach(btn => {
-    btn.addEventListener('click', function() {
-      const tabName = this.dataset.tab;
-
-      // Remove active class from all
-      tabButtons.forEach(b => b.classList.remove('active'));
-      tabContents.forEach(c => c.classList.remove('active'));
-
-      // Add active to clicked
-      this.classList.add('active');
-      document.getElementById(tabName + '-tab').classList.add('active');
-    });
-  });
-}
-
-// ===== Update Welcome Message =====
-function updateWelcomeMessage() {
-  const welcomeMsg = document.getElementById('welcome-message');
-  const user = AuthSession.getSession();
-  
-  if (user && user.email) {
-    // Extract name from email (before @)
-    const name = user.email.split('@')[0];
-    const displayName = name.charAt(0).toUpperCase() + name.slice(1).replace(/[._-]/g, ' ');
-    welcomeMsg.textContent = `Welcome, ${displayName}`;
+  switch(type) {
+    case 'success':
+      toastr.success(message);
+      break;
+    case 'error':
+      toastr.error(message);
+      break;
+    case 'warning':
+      toastr.warning(message);
+      break;
+    default:
+      toastr.info(message);
   }
 }
 
-// ===== Add Student Form =====
-addStudentToggleBtn.addEventListener('click', function() {
-  addStudentFormContainer.style.display = addStudentFormContainer.style.display === 'none' ? 'block' : 'none';
-});
 
-cancelAddStudentBtn.addEventListener('click', function() {
-  addStudentFormContainer.style.display = 'none';
-  addStudentForm.reset();
-  clearMessages('add-student');
-});
+function createStudentRow(student) {
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td>${student.name}</td>
+    <td>${student.id}</td>
+    <td>${student.email}</td>
+    <td>
+      <button class="edit-btn" data-db-id="${student.dbId}">Edit</button>
+      <button class="delete-btn secondary" data-db-id="${student.dbId}">Delete</button>
+    </td>
+  `;
+  return tr;
+}
 
-addStudentForm.addEventListener('submit', async function(e) {
-  e.preventDefault();
+function renderTable(studentArray) {
+  studentTableBody.innerHTML = "";
+  studentArray.forEach((student) => {
+    const row = createStudentRow(student);
+    studentTableBody.appendChild(row);
+  });
+}
 
-  const name = document.getElementById('student-name').value.trim();
-  const email = document.getElementById('student-email').value.trim();
-  const password = document.getElementById('default-password').value;
 
-  if (!name || !email) {
-    showError('add-student', 'Please fill in all fields');
+
+async function handleChangePassword(event) {
+  event.preventDefault();
+
+  const current = document.getElementById("current-password").value;
+  const newPass = document.getElementById("new-password").value;
+  const confirm = document.getElementById("confirm-password").value;
+
+  if (newPass !== confirm) {
+    showToast("Passwords do not match.", 'error');
     return;
   }
 
+  if (newPass.length < 8) {
+    showToast("Password must be at least 8 characters.", 'warning');
+    return;
+  }
+
+  // Use SweetAlert for better UX
+  const { value: email } = await Swal.fire({
+    title: 'Confirm Password Change',
+    input: 'email',
+    inputLabel: 'Enter your email to change password',
+    inputPlaceholder: 'your@email.com',
+    showCancelButton: true,
+    confirmButtonColor: '#10b981',
+    cancelButtonColor: '#6b7280',
+    confirmButtonText: 'Change Password',
+    inputValidator: (value) => {
+      if (!value) {
+        return 'Email is required!'
+      }
+    }
+  });
+
+  if (!email) return;
+
   try {
-    const response = await fetch('api/manage-students.php?action=add', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password })
+    const response = await fetch(`${API_BASE_URL}?action=change_password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email,
+        current_password: current,
+        new_password: newPass,
+      }),
     });
 
     const result = await response.json();
 
     if (!result.success) {
-      showError('add-student', result.message || 'Failed to add student');
+      showToast(result.message || "Failed to change password.", 'error');
       return;
     }
 
-    showSuccess('add-student', 'Student added successfully!');
-    addStudentForm.reset();
-    setTimeout(() => {
-      addStudentFormContainer.style.display = 'none';
-      loadStudents();
-    }, 1500);
+    showToast("Password updated successfully!", 'success');
 
+    document.getElementById("current-password").value = "";
+    document.getElementById("new-password").value = "";
+    document.getElementById("confirm-password").value = "";
   } catch (error) {
-    console.error('Error:', error);
-    showError('add-student', 'An error occurred while adding student');
-  }
-});
-
-// ===== Load Students =====
-async function loadStudents() {
-  try {
-    const response = await fetch('api/manage-students.php?action=list');
-    const result = await response.json();
-
-    if (!result.success) {
-      noStudentsDiv.style.display = 'block';
-      studentsTableBody.innerHTML = '';
-      return;
-    }
-
-    allStudents = result.students;
-    displayStudents(allStudents);
-
-  } catch (error) {
-    console.error('Error loading students:', error);
-    noStudentsDiv.style.display = 'block';
+    console.error(error);
+    showToast("Server error while changing password.", 'error');
   }
 }
 
-// ===== Display Students =====
-function displayStudents(students) {
-  if (students.length === 0) {
-    studentsTableBody.innerHTML = '<tr><td colspan="4" class="text-center">No students found</td></tr>';
-    noStudentsDiv.style.display = 'block';
+
+
+async function handleAddStudent(event) {
+  event.preventDefault();
+
+  const name = document.getElementById("student-name").value.trim();
+  const id = document.getElementById("student-id").value.trim();
+  const email = document.getElementById("student-email").value.trim();
+  const defaultPasswordInput = document.getElementById("default-password");
+  const password =
+    (defaultPasswordInput && defaultPasswordInput.value.trim()) ||
+    "password123";
+
+  if (!name || !id || !email) {
+    showToast("Please fill out all required fields.", 'warning');
     return;
   }
 
-  noStudentsDiv.style.display = 'none';
-  studentsTableBody.innerHTML = students.map(student => `
-    <tr>
-      <td>${student.name}</td>
-      <td>${student.id}</td>
-      <td>${student.email}</td>
-      <td>
-        <div class="table-actions">
-          <button type="button" class="btn-edit" onclick="editStudent(${student.id})">Edit</button>
-          <button type="button" class="btn-delete" onclick="deleteStudent(${student.id}, '${student.name}')">Delete</button>
+  const exists = students.some((student) => student.id === id);
+  if (exists) {
+    showToast("Student with this ID already exists.", 'error');
+    return;
+  }
+
+  try {
+    const response = await fetch(API_BASE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        student_id: id,
+        name,
+        email,
+        password,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!result.success) {
+      showToast(result.message || "Failed to create student.", 'error');
+      return;
+    }
+
+    const newStudent = {
+      dbId: result.data.id,
+      id,
+      name,
+      email,
+    };
+
+    students.push(newStudent);
+    renderTable(students);
+
+    showToast(`Student "${name}" added successfully! 🎉`, 'success');
+
+    document.getElementById("student-name").value = "";
+    document.getElementById("student-id").value = "";
+    document.getElementById("student-email").value = "";
+    if (defaultPasswordInput) defaultPasswordInput.value = "password123";
+  } catch (error) {
+    console.error(error);
+    showToast("Server error while creating student.", 'error');
+  }
+}
+
+
+
+async function handleTableClick(event) {
+  const target = event.target;
+
+  if (target.classList.contains("delete-btn")) {
+    const dbId = target.dataset.dbId;
+    const student = students.find((s) => String(s.dbId) === String(dbId));
+
+    Swal.fire({
+      title: 'Are you sure?',
+      text: `You are about to delete ${student?.name}. This action cannot be undone!`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, Delete',
+      cancelButtonText: 'Cancel'
+    }).then(async (result) => {
+      if (!result.isConfirmed) return;
+
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}?id=${encodeURIComponent(dbId)}`,
+          { method: "DELETE" }
+        );
+
+        const result = await response.json();
+
+        if (!result.success) {
+          showToast(result.message || "Failed to delete student.", 'error');
+          return;
+        }
+
+        students = students.filter(
+          (student) => String(student.dbId) !== String(dbId)
+        );
+        renderTable(students);
+        showToast(`Student deleted successfully.`, 'success');
+      } catch (error) {
+        console.error(error);
+        showToast("Server error while deleting student.", 'error');
+      }
+    });
+  }
+
+  if (target.classList.contains("edit-btn")) {
+    const dbId = target.dataset.dbId;
+    const student = students.find(
+      (s) => String(s.dbId) === String(dbId)
+    );
+    if (!student) return;
+
+    Swal.fire({
+      title: 'Edit Student',
+      html: `
+        <div style="text-align: left;">
+          <label style="display: block; margin-bottom: 1rem;">
+            Name:
+            <input type="text" id="edit-name" class="swal2-input" value="${student.name}" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; margin-top: 0.5rem;">
+          </label>
+          <label style="display: block;">
+            Email:
+            <input type="email" id="edit-email" class="swal2-input" value="${student.email}" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; margin-top: 0.5rem;">
+          </label>
         </div>
-      </td>
-    </tr>
-  `).join('');
-}
-
-// ===== Search Students =====
-searchStudentsInput.addEventListener('input', function() {
-  const query = this.value.toLowerCase();
-  const filtered = allStudents.filter(student => 
-    student.name.toLowerCase().includes(query) || 
-    student.email.toLowerCase().includes(query)
-  );
-  displayStudents(filtered);
-});
-
-// ===== Delete Student =====
-async function deleteStudent(studentId, studentName) {
-  showModal(
-    'Delete Student',
-    `Are you sure you want to delete ${studentName}? This action cannot be undone.`,
-    async function() {
-      try {
-        const response = await fetch('api/manage-students.php?action=delete', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: studentId })
-        });
-
-        const result = await response.json();
-
-        if (!result.success) {
-          alert(result.message || 'Failed to delete student');
-          return;
-        }
-
-        alert('Student deleted successfully');
-        loadStudents();
-
-      } catch (error) {
-        console.error('Error:', error);
-        alert('An error occurred while deleting student');
-      }
-    }
-  );
-}
-
-// ===== Setup Edit Modal Handlers =====
-function setupEditModalHandlers() {
-  // Cancel button: close modal immediately
-  cancelEditStudentBtn.addEventListener('click', function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    closeEditModal();
-  });
-  
-  // Save Changes button: trigger form submission
-  editStudentSubmitBtn.addEventListener('click', function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    handleEditFormSubmit(e);
-  });
-  
-  // Close modal when clicking on overlay
-  editStudentModal.addEventListener('click', function(e) {
-    if (e.target === editStudentModal) {
-      closeEditModal();
-    }
-  });
-}
-
-function closeEditModal() {
-  editStudentModal.style.display = 'none';
-  editStudentForm.reset();
-  clearMessages('edit-student');
-}
-
-// ===== Open Edit Modal =====
-async function editStudent(studentId) {
-  try {
-    // Fetch student data
-    const response = await fetch(`api/manage-students.php?action=get&id=${studentId}`);
-    const result = await response.json();
-
-    if (!result.success) {
-      alert(result.message || 'Failed to load student data');
-      return;
-    }
-
-    const student = result.student;
-
-    // Populate form fields
-    editStudentName.value = student.name;
-    editStudentEmail.value = student.email;
-    resetPasswordCheckbox.checked = false;
-
-    // Show modal
-    editStudentModal.style.display = 'flex';
-    
-    // Store current student ID (database ID) for submit
-    editStudentForm.dataset.studentId = studentId;
-
-  } catch (error) {
-    console.error('Error:', error);
-    alert('An error occurred while loading student data');
-  }
-}
-
-// ===== Handle Edit Form Submit =====
-async function handleEditFormSubmit(e) {
-  e.preventDefault();
-
-  const studentId = parseInt(editStudentForm.dataset.studentId);
-  const name = editStudentName.value.trim();
-  const email = editStudentEmail.value.trim();
-  const resetPassword = resetPasswordCheckbox.checked;
-
-  if (!name || !email) {
-    showError('edit-student', 'Please fill in all fields');
-    return;
-  }
-
-  // Perform update directly without confirmation modal
-  try {
-    const response = await fetch('api/manage-students.php?action=update', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        id: studentId,
-        name, 
-        email, 
-        resetPassword 
-      })
-    });
-
-    const result = await response.json();
-
-    if (!result.success) {
-      showError('edit-student', result.message || 'Failed to update student');
-      return;
-    }
-
-    showSuccess('edit-student', 'Student updated successfully!');
-    setTimeout(() => {
-      closeEditModal();
-      loadStudents();
-    }, 1500);
-
-  } catch (error) {
-    console.error('Error:', error);
-    showError('edit-student', 'An error occurred while updating student');
-  }
-}
-
-// ===== Change Password =====
-changePasswordForm.addEventListener('submit', async function(e) {
-  e.preventDefault();
-
-  const currentPassword = document.getElementById('current-password').value;
-  const newPassword = document.getElementById('new-password').value;
-  const confirmPassword = document.getElementById('confirm-password').value;
-
-  if (!currentPassword || !newPassword || !confirmPassword) {
-    showError('password', 'All fields are required');
-    return;
-  }
-
-  if (newPassword !== confirmPassword) {
-    showError('password', 'New passwords do not match');
-    return;
-  }
-
-  if (newPassword.length < 8) {
-    showError('password', 'Password must be at least 8 characters');
-    return;
-  }
-
-  // Show confirmation modal
-  showModal(
-    'Confirm Password Change',
-    'Are you sure you want to change your password? You will need to login again with the new password.',
-    async function() {
-      try {
-        const response = await fetch('api/manage-students.php?action=changePassword', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            currentPassword, 
-            newPassword, 
-            confirmPassword 
-          })
-        });
-
-        const result = await response.json();
-
-        if (!result.success) {
-          showError('password', result.message || 'Failed to change password');
-          return;
-        }
-
-        showSuccess('password', 'Password changed successfully! Redirecting to login...');
-        changePasswordForm.reset();
+      `,
+      showCancelButton: true,
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Update',
+      preConfirm: () => {
+        const newName = document.getElementById('edit-name').value.trim();
+        const newEmail = document.getElementById('edit-email').value.trim();
         
-        // Redirect to login after 2 seconds
-        setTimeout(function() {
-          AuthSession.clearSession();
-          window.location.href = '../auth/login.html';
-        }, 2000);
-
-      } catch (error) {
-        console.error('Error:', error);
-        showError('password', 'An error occurred');
+        if (!newName || !newEmail) {
+          Swal.showValidationMessage('Please fill out all fields');
+          return false;
+        }
+        return { newName, newEmail };
       }
-    }
+    }).then(async (result) => {
+      if (!result.isConfirmed) return;
+      
+      const { newName, newEmail } = result.value;
+
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}?id=${encodeURIComponent(dbId)}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: newName,
+              email: newEmail,
+            }),
+          }
+        );
+
+        const result = await response.json();
+
+        if (!result.success) {
+          showToast(result.message || "Failed to update student.", 'error');
+          return;
+        }
+
+        student.name = newName;
+        student.email = newEmail;
+        renderTable(students);
+        showToast(`Student updated successfully.`, 'success');
+      } catch (error) {
+        console.error(error);
+        showToast("Server error while updating student.", 'error');
+      }
+    });
+  }
+}
+
+
+
+function handleSearch(event) {
+  const term = searchInput.value.toLowerCase();
+
+  if (term === "") {
+    renderTable(students);
+    return;
+  }
+
+  const filtered = students.filter((student) =>
+    student.name.toLowerCase().includes(term)
   );
-});
 
-// ===== Helper Functions =====
-function showError(section, message) {
-  const errorDiv = document.getElementById(section + '-error');
-  const successDiv = document.getElementById(section + '-success');
-  
-  if (errorDiv) {
-    errorDiv.textContent = message;
-    errorDiv.style.display = 'block';
-  }
-  if (successDiv) {
-    successDiv.style.display = 'none';
+  renderTable(filtered);
+}
+
+
+
+function handleSort(event) {
+  const index = event.currentTarget.cellIndex;
+
+  const keyMap = {
+    0: "name",
+    1: "id",
+    2: "email",
+  };
+
+  if (!(index in keyMap)) return;
+
+  const key = keyMap[index];
+  const currentDir = event.currentTarget.dataset.sortDir || "asc";
+  const newDir = currentDir === "asc" ? "desc" : "asc";
+  event.currentTarget.dataset.sortDir = newDir;
+
+  students.sort((a, b) => {
+    let result;
+
+    if (key === "id") {
+      result = a[key].localeCompare(b[key]); 
+    } else {
+      result = a[key].localeCompare(b[key]);
+    }
+
+    return newDir === "asc" ? result : -result;
+  });
+
+  renderTable(students);
+}
+
+
+async function loadStudentsAndInitialize() {
+  try {
+    const response = await fetch(API_BASE_URL);
+    console.log(response)
+    if(response.status === 403){
+      showToast("Only admins can access this page.", 'error');
+      setTimeout(() => {
+        window.location.href = "../auth/login.html";
+      }, 2000);
+      return;
+    }
+
+    if (!response.ok) {
+      console.error("Failed to load students from API");
+      showToast("Failed to load students from the server.", 'error');
+      return;
+    }
+
+    const result = await response.json();
+
+    if (!result.success) {
+      console.error(result.message || "API error while loading students");
+      showToast(result.message || "Failed to load students.", 'error');
+      return;
+    }
+
+    students = result.data.map((row) => ({
+      dbId: row.id,
+      id: row.student_id,
+      name: row.name,
+      email: row.email,
+    }));
+
+    renderTable(students);
+    showToast("Students loaded successfully!", 'success');
+
+    // Event listeners
+    changePasswordForm.addEventListener("submit", handleChangePassword);
+    addStudentForm.addEventListener("submit", handleAddStudent);
+    studentTableBody.addEventListener("click", handleTableClick);
+    searchInput.addEventListener("input", handleSearch);
+    tableHeaders.forEach((th) => th.addEventListener("click", handleSort));
+  } catch (error) {
+    console.error("Error loading students:", error);
+    showToast("Error loading students. Please refresh the page.", 'error');
   }
 }
 
-function showSuccess(section, message) {
-  const errorDiv = document.getElementById(section + '-error');
-  const successDiv = document.getElementById(section + '-success');
-  
-  if (successDiv) {
-    successDiv.textContent = message;
-    successDiv.style.display = 'block';
-  }
-  if (errorDiv) {
-    errorDiv.style.display = 'none';
-  }
-}
-
-// ===== Password Field Toggle Handlers =====
-function setupPasswordToggles() {
-  // Toggle current password
-  const toggleCurrent = document.querySelector('.toggle-current');
-  const currentPasswordInput = document.getElementById('current-password');
-  if (toggleCurrent && currentPasswordInput) {
-    toggleCurrent.addEventListener('click', function(e) {
-      e.preventDefault();
-      togglePasswordVisibility(currentPasswordInput, toggleCurrent);
-    });
-  }
-
-  // Toggle new password
-  const toggleNew = document.querySelector('.toggle-new');
-  const newPasswordInput = document.getElementById('new-password');
-  if (toggleNew && newPasswordInput) {
-    toggleNew.addEventListener('click', function(e) {
-      e.preventDefault();
-      togglePasswordVisibility(newPasswordInput, toggleNew);
-    });
-  }
-
-  // Toggle confirm password
-  const toggleConfirm = document.querySelector('.toggle-confirm');
-  const confirmPasswordInput = document.getElementById('confirm-password');
-  if (toggleConfirm && confirmPasswordInput) {
-    toggleConfirm.addEventListener('click', function(e) {
-      e.preventDefault();
-      togglePasswordVisibility(confirmPasswordInput, toggleConfirm);
-    });
-  }
-}
-
-function togglePasswordVisibility(inputElement, toggleButton) {
-  const isPassword = inputElement.type === 'password';
-  inputElement.type = isPassword ? 'text' : 'password';
-  
-  if (isPassword) {
-    // Switching to text (showing password)
-    toggleButton.classList.remove('hidden');
-    toggleButton.setAttribute('aria-label', 'Hide password');
-    toggleButton.title = 'Hide password';
-  } else {
-    // Switching to password (hiding password)
-    toggleButton.classList.add('hidden');
-    toggleButton.setAttribute('aria-label', 'Show password');
-    toggleButton.title = 'Show password';
-  }
-}
-
-function clearMessages(section) {
-  const errorDiv = document.getElementById(section + '-error');
-  const successDiv = document.getElementById(section + '-success');
-  
-  if (errorDiv) errorDiv.style.display = 'none';
-  if (successDiv) successDiv.style.display = 'none';
-}
+// Start app
+loadStudentsAndInitialize();
