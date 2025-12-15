@@ -40,6 +40,12 @@
 // ============================================================================
 
 // Set Content-Type header to JSON
+session_start();
+
+if (!isset($_SESSION['user'])) {
+    $_SESSION['user'] = null;
+}
+
 header('Content-Type: application/json; charset=utf-8');
 
 // Basic CORS headers - permissive for development. Adjust in production.
