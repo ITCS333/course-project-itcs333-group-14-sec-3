@@ -1,106 +1,99 @@
+
+/* all selectors part: */
 const loginForm = document.getElementById("login-form");
 const emailInput = document.getElementById("email");
 const passwordInput = document.getElementById("password");
-const errorMessage = document.getElementById("error-message");
-const togglePasswordBtn = document.getElementById("toggle-password");
+const messageContainer = document.getElementById("message-container");
+const loginButton = document.getElementById("login");
 
-// ===== Password Visibility Toggle =====
-togglePasswordBtn.addEventListener('click', function(e) {
-  e.preventDefault();
-  const isPassword = passwordInput.type === 'password';
-  passwordInput.type = isPassword ? 'text' : 'password';
-  
-  // Update button state and icon
-  if (isPassword) {
-    // Switching to text (showing password)
-    togglePasswordBtn.classList.remove('hidden');
-    togglePasswordBtn.setAttribute('aria-label', 'Hide password');
-    togglePasswordBtn.title = 'Hide password';
-  } else {
-    // Switching to password (hiding password)
-    togglePasswordBtn.classList.add('hidden');
-    togglePasswordBtn.setAttribute('aria-label', 'Show password');
-    togglePasswordBtn.title = 'Show password';
-  }
-});
 
-// ===== Form Validation =====
+/* all functions part: */
+function displayMessage(message, type) {
+  const alertType = type === "success" ? "alert-success" : "alert-danger"; // what will be displayed to user based on login data
+  messageContainer.innerHTML = `
+    <div class="alert ${alertType}" role="alert">
+      ${message}
+    </div>
+  `;
+}
+
 function isValidEmail(email) {
-  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const regex = /\S+@\S+\.\S+/;  // make sure that user input for email is like this : example@example.example
   return regex.test(email);
 }
 
-function showError() {
-  errorMessage.style.display = 'block';
-  errorMessage.setAttribute('role', 'alert');
+function isValidPassword(password) {
+  return password.length >= 8;  // only when password input 8 or longer
 }
 
-function hideError() {
-  errorMessage.style.display = 'none';
-}
-
-// ===== Form Submit Handler =====
 async function handleLogin(event) {
   event.preventDefault();
 
   const email = emailInput.value.trim();
   const password = passwordInput.value.trim();
 
-  // Validation: check if fields are empty
-  if (!email || !password) {
-    showError();
-    return;
-  }
-
-  // Validation: check email format
   if (!isValidEmail(email)) {
-    showError();
+    displayMessage("Invalid email format.", "error");  // using displayMessage to display the user about his input
     return;
   }
 
-  // Hide error if validation passed
-  hideError();
+  if (!isValidPassword(password)) {
+    displayMessage("Password must be at least 8 characters.", "error");
+    return;
+  }
+
 
   try {
-    // Call the PHP API for authentication
-    const response = await fetch("api/index.php", {
+    const response = await fetch("api/index.php", {  // send the input of the user to the backend
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password }),  // parse it into json and send it
     });
 
-    const result = await response.json();
+    const result = await response.json();  // get the response from the backend
 
     if (!result.success) {
-      showError();
+      displayMessage(result.message || "Login failed.", "error");  // using displayMessage to display the user
       return;
     }
 
-    // Login successful - save session
-    console.log('Login successful for:', email);
-    AuthSession.setSession({
-      email: email,
-      is_admin: result.user ? result.user.is_admin : 0
-    });
+    displayMessage("✅ Login successful!", "success");  // using displayMessage that his input was correct 
 
-    // Redirect based on user role
-    if (result.user && result.user.is_admin === 1) {
-      window.location.href = "../admin/manage_users.html";
-    } else {
-      window.location.href = "../index.html";
-    }
+    setTimeout(() => {                                           // set time counter for about 1 sec before transfer the user to the proper page
+      if (result.user && result.user.is_admin === 1) {  
+        window.location.href = "../admin/manage_users.html";    // admin will be send to admin portal
+      } else {
+        window.location.href = "../index.html";                 // student will be send to index page
+      }
+    }, 1200);
 
   } catch (error) {
     console.error("Error during login:", error);
-    showError();
+    displayMessage("Server error. Please try again.", "error");   // using displayMeassge that some error happened in the backend
   }
 }
 
-// ===== Event Listeners =====
-if (loginForm) {
-  loginForm.addEventListener("submit", handleLogin);
+function setupLoginForm() {
+  if (loginForm) {
+    loginForm.addEventListener("submit", handleLogin);
+  }
 }
 
-// Hide error message when user starts typing
-emailInput.addEventListener('input', hideError);
-passwordInput.addEventListener('input', hideError);
+setupLoginForm();
+
+/* show/hide password functionality (safe for tests) */
+const togglePassword = document.getElementById("togglePassword");
+
+if (togglePassword && passwordInput) {
+  const icon = togglePassword.querySelector("i"); // may be null if HTML changes
+
+  togglePassword.addEventListener("click", () => {
+    const isHidden = passwordInput.type === "password";
+
+    passwordInput.type = isHidden ? "text" : "password";
+
+    if (icon) {
+      icon.className = isHidden ? "bi bi-eye-slash" : "bi bi-eye";
+    }
+  });
+}
