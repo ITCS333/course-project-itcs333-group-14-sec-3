@@ -1,10 +1,31 @@
 <?php
-session_start();
+session_start(); 
 
 header("Content-Type: application/json");
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
+
+if ($_SERVER["REQUEST_METHOD"] === "OPTIONS") {
+    http_response_code(200);
+    exit;
+}
+
+if (
+    empty($_SESSION['logged_in']) ||
+    empty($_SESSION['is_admin']) ||
+    $_SESSION['is_admin'] !== 1
+) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Access denied']);
+    exit;
+}
+
+require_once __DIR__ . "/../../Database.php";
+$db = (new Database())->getConnection();
+
+$method = $_SERVER["REQUEST_METHOD"];
+$input  = json_decode(file_get_contents("php://input"), true) ?? [];
 
 function sendResponse($data, $status = 200) {
     http_response_code($status);
@@ -18,30 +39,6 @@ function validateEmail($email) {
 
 function sanitizeInput($data) {
     return htmlspecialchars(strip_tags(trim($data)));
-}
-
-function handleOptions() {
-    if ($_SERVER["REQUEST_METHOD"] === "OPTIONS") {
-        http_response_code(200);
-        exit;
-    }
-}
-
-function authorizeAdmin() {
-    if (
-        empty($_SESSION['logged_in']) ||
-        empty($_SESSION['is_admin']) ||
-        $_SESSION['is_admin'] !== 1
-    ) {
-        http_response_code(403);
-        echo json_encode(['success' => false, 'message' => 'Access denied']);
-        exit;
-    }
-}
-
-function getDbConnection() {
-    require_once __DIR__ . "/../../Database.php";
-    return (new Database())->getConnection();
 }
 
 function getStudents($db) {
@@ -236,7 +233,7 @@ function changePassword($db, $data) {
     sendResponse(["success" => true, "message" => "Password updated"]);
 }
 
-function handleRequest($db, $method, $input) {
+try {
     switch ($method) {
         case "GET":
             if (isset($_GET["id"])) {
@@ -269,17 +266,6 @@ function handleRequest($db, $method, $input) {
         default:
             sendResponse(["success" => false, "message" => "Method not allowed"], 405);
     }
-}
-
-handleOptions();
-authorizeAdmin();
-
-$db     = getDbConnection();
-$method = $_SERVER["REQUEST_METHOD"];
-$input  = json_decode(file_get_contents("php://input"), true) ?? [];
-
-try {
-    handleRequest($db, $method, $input);
 } catch (Exception $e) {
     error_log("Admin API error: " . $e->getMessage());
     sendResponse(["success" => false, "message" => "Server error"], 500);
