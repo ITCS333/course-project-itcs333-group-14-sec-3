@@ -19,10 +19,10 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     exit;
 }
 
-// Clear all session data
+
 $_SESSION = [];
 
-// Delete session cookie (optional but nice)
+
 if (ini_get("session.use_cookies")) {
     $params = session_get_cookie_params();
     setcookie(
