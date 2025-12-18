@@ -1,19 +1,19 @@
 <?php
 session_start();
 /*headers part: */
-header("Content-Type: application/json");  // frontend only allowed to send to the backend in JSON type
-header("Access-Control-Allow-Origin: *");  // can came from any frontend 
-header("Access-Control-Allow-Methods: POST, OPTIONS"); // only post method is allowed
+header("Content-Type: application/json");  
+header("Access-Control-Allow-Origin: *");   
+header("Access-Control-Allow-Methods: POST, OPTIONS"); 
 header("Access-Control-Allow-Headers: Content-Type");
 
 
-if ($_SERVER["REQUEST_METHOD"] === "OPTIONS") {  // checking before sending post method
+if ($_SERVER["REQUEST_METHOD"] === "OPTIONS") {  
     http_response_code(200);
     exit;
 }
 
 
-if ($_SERVER["REQUEST_METHOD"] !== "POST") {  // block any methods that isn't post
+if ($_SERVER["REQUEST_METHOD"] !== "POST") {  
     echo json_encode([
         'success' => false,
         'message' => "Invalid request method"
@@ -21,10 +21,10 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {  // block any methods that isn't po
     exit;
 }
 
-$rawData = file_get_contents("php://input");  // store the data in JSON that came from frontend
-$data = json_decode($rawData, true) ?? [];   // make the JSON to php array
+$rawData = file_get_contents("php://input");  
+$data = json_decode($rawData, true) ?? [];   
 
-if (!isset($data['email']) || !isset($data['password'])) {    // return error if email or password not exist 
+if (!isset($data['email']) || !isset($data['password'])) {    
     echo json_encode([
         'success' => false,
         'message' => 'Missing email or password'
@@ -32,10 +32,10 @@ if (!isset($data['email']) || !isset($data['password'])) {    // return error if
     exit;
 }
 
-$email    = trim($data['email']);  // store the email and passwords and remove any spaces from email input
+$email    = trim($data['email']); 
 $password = $data['password'];
 
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {  // using filter_var with FILTER_VALIDATE_EMAIL to check the format of user input
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {  
     echo json_encode([
         'success' => false,
         'message' => 'Invalid email format'
@@ -43,7 +43,7 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {  // using filter_var with FILT
     exit;
 }
 
-if (strlen($password) < 8) {  // return false to the frontend since password must be at least 8 characters
+if (strlen($password) < 8) {  
     echo json_encode([
         'success' => false,
         'message' => 'Password must be at least 8 characters'
@@ -51,11 +51,10 @@ if (strlen($password) < 8) {  // return false to the frontend since password mus
     exit;
 }
 
-require_once __DIR__ . "/../../Database.php";   // using database file that connect to database
-
+require_once __DIR__ . "/../../Database.php";  
 try {
     $pdo = (new Database())->getConnection();
-// send sql command to the database
+
     $sql = "SELECT id, name, email, password, is_admin  
             FROM users 
             WHERE email = :email";
@@ -72,7 +71,7 @@ try {
         $_SESSION['is_admin']   = (int)$user['is_admin'];
         $_SESSION['logged_in']  = true;
 
-        echo json_encode([    // send the to frontend that the input data was correct
+        echo json_encode([    
             'success' => true,
             'message' => 'Login successful',
             'user' => [
