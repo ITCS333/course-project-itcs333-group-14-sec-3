@@ -8,7 +8,7 @@ const changePasswordForm = document.getElementById("password-form");
 const searchInput = document.getElementById("search-input");
 const tableHeaders = document.querySelectorAll("#student-table thead th");
 
-// Toast notification helper
+
 function showToast(message, type = 'info') {
   toastr.options = {
     closeButton: true,
@@ -79,7 +79,7 @@ async function handleChangePassword(event) {
     return;
   }
 
-  // Use SweetAlert for better UX
+  
   const { value: email } = await Swal.fire({
     title: 'Confirm Password Change',
     input: 'email',
@@ -397,7 +397,7 @@ async function loadStudentsAndInitialize() {
     renderTable(students);
     showToast("Students loaded successfully!", 'success');
 
-    // Event listeners
+    
     changePasswordForm.addEventListener("submit", handleChangePassword);
     addStudentForm.addEventListener("submit", handleAddStudent);
     studentTableBody.addEventListener("click", handleTableClick);
